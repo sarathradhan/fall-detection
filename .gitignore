@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Raw dataset (download separately; too large for GitHub)
+SisFall_dataset/
+data/raw/*
+!data/raw/.gitkeep
+
+# Generated processed arrays and model artifacts (regenerate via scripts)
+data/processed/*.npy
+data/processed/*.pkl
+
+# Local logs (reports and plots are kept for documentation)
+data/processed/*.log
+data/processed/reports/*.log
