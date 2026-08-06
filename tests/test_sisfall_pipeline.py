@@ -87,16 +87,20 @@ def test_sliding_windows_use_recording_row_positions() -> None:
         ],
         dtype=np.float32,
     )
+    raw_features = features.astype(np.float64).copy()
+    raw_features[6, 0] = 500.0
 
     windowed = generate_sliding_windows(
         {
             "train": {
                 "dataframe": frame,
                 "features": features,
+                "raw_features": raw_features,
             }
         },
         window_size=4,
         stride=4,
+        impact_method="peak",
     )
 
     windows = windowed["train"]["windows"]
@@ -105,3 +109,75 @@ def test_sliding_windows_use_recording_row_positions() -> None:
     assert np.array_equal(windows[1, :, 0], np.asarray([100, 101, 102, 103], dtype=np.float32))
     assert windowed["train"]["labels"].tolist() == [0, 1]
     assert windowed["train"]["recording_ids"].tolist() == ["rec_a", "rec_b"]
+
+
+def test_impact_centered_fall_labeling() -> None:
+    """Fall recordings label only windows that contain the detected impact index."""
+
+    num_rows = 20
+    frame = pd.DataFrame(
+        {
+            "recording_id": ["fall_rec"] * num_rows,
+            "binary_label": [1] * num_rows,
+            "subject_id": ["SA01"] * num_rows,
+        }
+    )
+    features = np.zeros((num_rows, 6), dtype=np.float32)
+    raw_features = np.zeros((num_rows, 6), dtype=np.float64)
+    raw_features[10, 0] = 800.0
+
+    windowed = generate_sliding_windows(
+        {
+            "train": {
+                "dataframe": frame,
+                "features": features,
+                "raw_features": raw_features,
+            }
+        },
+        window_size=4,
+        stride=2,
+        impact_method="peak",
+    )
+
+    labels = windowed["train"]["labels"]
+    assert (labels == 1).sum() >= 1
+    assert (labels == 0).sum() >= 1
+    assert len(labels) == 9
+
+
+def test_split_by_subjects_includes_every_subject() -> None:
+    """Ensure remainder subjects are assigned when ratios do not divide evenly."""
+
+    subjects = [f"SA{i:02d}" for i in range(1, 24)] + [f"SE{i:02d}" for i in range(1, 16)]
+    rows = []
+    for subject_id in subjects:
+        rows.append(
+            {
+                "acc1_x": 0.0,
+                "acc1_y": 0.0,
+                "acc1_z": 0.0,
+                "gyro_x": 0.0,
+                "gyro_y": 0.0,
+                "gyro_z": 0.0,
+                "subject_id": subject_id,
+                "activity_code": "D01",
+                "activity_name": "Walking slowly",
+                "recording_id": f"{subject_id}:demo.txt",
+                "binary_label": 0,
+                "timestamp": 0.0,
+                "source_file": "demo.txt",
+                "source_path": "demo.txt",
+            }
+        )
+
+    frame = pd.DataFrame(rows)
+    splits = split_by_subjects(frame, train_ratio=0.70, val_ratio=0.15, test_ratio=0.15, random_state=42)
+
+    assigned = set()
+    for split_name, split_frame in splits.items():
+        assigned.update(split_frame["subject_id"].unique())
+
+    assert assigned == set(subjects)
+    assert "SA09" in assigned
+    assert "SA14" in assigned
+    assert sum(len(split_frame["subject_id"].unique()) for split_frame in splits.values()) == len(subjects)

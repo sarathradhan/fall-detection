@@ -35,6 +35,8 @@ IMU_CHANNELS = [
     "gyro_z",
 ]
 
+ACC_CHANNEL_INDICES = (0, 1, 2)
+
 METADATA_COLUMNS = [
     "subject_id",
     "activity_code",
@@ -314,7 +316,7 @@ def select_imu_channels(
         raise ValueError(f"The input DataFrame is missing required columns: {sorted(missing_columns)}")
 
     before_shape = preprocessed_df.shape
-    selected_df = preprocessed_df.loc[:, IMU_CHANNELS + METADATA_COLUMNS].copy()
+    selected_df = preprocessed_df.loc[:, IMU_CHANNELS + METADATA_COLUMNS]
     after_shape = selected_df.shape
 
     print("\nStage 2 - Task 1: Channel Selection")
@@ -508,28 +510,39 @@ def split_by_subjects(
     if len(shuffled_subjects) == 0:
         raise ValueError("Cannot split an empty dataset by subject.")
 
-    target_counts = [
-        int(len(shuffled_subjects) * train_ratio),
-        int(len(shuffled_subjects) * val_ratio),
-        int(len(shuffled_subjects) * test_ratio),
-    ]
+    ratios = np.array([train_ratio, val_ratio, test_ratio], dtype=np.float64)
+    exact_counts = ratios * len(shuffled_subjects)
+    target_counts = np.floor(exact_counts).astype(int).tolist()
+    remainder = len(shuffled_subjects) - sum(target_counts)
+    if remainder > 0:
+        fractional_parts = exact_counts - np.floor(exact_counts)
+        for split_index in np.argsort(fractional_parts)[::-1][:remainder]:
+            target_counts[int(split_index)] += 1
 
-    for index, count in enumerate(target_counts):
-        minimum = 1 if len(shuffled_subjects) > index else 0
-        target_counts[index] = max(minimum, count)
+    if len(shuffled_subjects) >= 3:
+        for split_index, count in enumerate(target_counts):
+            if count == 0:
+                donor_index = int(np.argmax(target_counts))
+                if target_counts[donor_index] > 1:
+                    target_counts[donor_index] -= 1
+                    target_counts[split_index] += 1
 
-    while sum(target_counts) > len(shuffled_subjects):
-        for index in range(2, -1, -1):
-            minimum = 1 if len(shuffled_subjects) > index else 0
-            if target_counts[index] > minimum:
-                target_counts[index] -= 1
-                break
+    if sum(target_counts) != len(shuffled_subjects):
+        raise ValueError(
+            "Could not assign every subject to a split. "
+            f"Requested counts {target_counts} for {len(shuffled_subjects)} subjects."
+        )
 
     n_train, n_val, n_test = target_counts
 
     train_subjects = shuffled_subjects[:n_train]
     val_subjects = shuffled_subjects[n_train : n_train + n_val]
     test_subjects = shuffled_subjects[n_train + n_val : n_train + n_val + n_test]
+
+    assigned_subjects = set(train_subjects) | set(val_subjects) | set(test_subjects)
+    if assigned_subjects != set(subjects):
+        missing = sorted(set(subjects) - assigned_subjects)
+        raise ValueError(f"Subject split did not include all subjects. Missing: {missing}")
 
     if len(set(train_subjects).intersection(set(val_subjects))) > 0:
         raise ValueError("Subject overlap detected between train and validation splits.")
@@ -559,8 +572,75 @@ def split_by_subjects(
     print(f"- Train/Val overlap: {len(set(train_subjects).intersection(set(val_subjects)))}")
     print(f"- Train/Test overlap: {len(set(train_subjects).intersection(set(test_subjects)))}")
     print(f"- Val/Test overlap: {len(set(val_subjects).intersection(set(test_subjects)))}")
+    print(f"- Subjects assigned: {len(assigned_subjects)} / {len(subjects)}")
+    print(f"- Split sizes (subjects): train={n_train}, val={n_val}, test={n_test}")
 
     return split_frames
+
+
+def compute_raw_acceleration_magnitude(raw_features: np.ndarray) -> np.ndarray:
+    """Per-timestep acceleration magnitude from raw (pre-normalization) acc channels."""
+
+    acc = raw_features[:, ACC_CHANNEL_INDICES].astype(np.float64)
+    return np.sqrt(np.sum(acc**2, axis=1))
+
+
+def detect_impact_index_peak(magnitudes: np.ndarray) -> int:
+    """Return the timestep index of peak raw acceleration magnitude."""
+
+    if magnitudes.size == 0:
+        raise ValueError("Cannot detect impact in an empty recording.")
+    return int(np.argmax(magnitudes))
+
+
+def detect_impact_index_threshold(
+    magnitudes: np.ndarray,
+    threshold_multiplier: float = 3.0,
+    baseline_fraction: float = 0.2,
+) -> tuple[int, bool]:
+    """Return the first threshold crossing and whether peak fallback was used."""
+
+    if magnitudes.size == 0:
+        raise ValueError("Cannot detect impact in an empty recording.")
+
+    baseline_len = max(3, int(len(magnitudes) * baseline_fraction))
+    baseline = magnitudes[:baseline_len]
+    baseline_mean = float(np.mean(baseline))
+    baseline_std = float(np.std(baseline))
+    if baseline_std < 1e-9:
+        baseline_std = 1e-9
+
+    threshold = baseline_mean + threshold_multiplier * baseline_std
+    crossings = np.where(magnitudes > threshold)[0]
+    if crossings.size == 0:
+        return detect_impact_index_peak(magnitudes), True
+    return int(crossings[0]), False
+
+
+def detect_impact_index(
+    raw_features: np.ndarray,
+    method: str = "peak",
+    threshold_multiplier: float = 3.0,
+    baseline_fraction: float = 0.2,
+) -> tuple[int, bool]:
+    """Detect impact index on raw accelerometer data for one recording."""
+
+    magnitudes = compute_raw_acceleration_magnitude(raw_features)
+    if method == "peak":
+        return detect_impact_index_peak(magnitudes), False
+    if method == "threshold":
+        return detect_impact_index_threshold(
+            magnitudes,
+            threshold_multiplier=threshold_multiplier,
+            baseline_fraction=baseline_fraction,
+        )
+    raise ValueError("method must be either 'peak' or 'threshold'.")
+
+
+def window_contains_impact(start: int, window_size: int, impact_index: int) -> bool:
+    """True when the impact timestep lies inside [start, start + window_size)."""
+
+    return start <= impact_index < start + window_size
 
 
 def normalize_splits(
@@ -596,11 +676,14 @@ def normalize_splits(
         features = frame[IMU_CHANNELS].to_numpy(dtype=np.float64)
         if len(frame) == 0:
             transformed = np.empty((0, features.shape[1]), dtype=np.float32)
+            raw_features = np.empty((0, features.shape[1]), dtype=np.float64)
         else:
+            raw_features = features.copy()
             transformed = scaler.transform(features).astype(np.float32)
         normalized_splits[split_name] = {
             "dataframe": frame.reset_index(drop=True),
             "features": transformed,
+            "raw_features": raw_features,
             "labels": frame["binary_label"].to_numpy(dtype=np.int64),
             "subject_ids": frame["subject_id"].to_numpy(),
             "recording_ids": frame["recording_id"].to_numpy(),
@@ -630,8 +713,11 @@ def generate_sliding_windows(
     normalized_splits: dict[str, dict[str, Any]],
     window_size: int = 64,
     stride: int = 16,
+    impact_method: str = "peak",
+    threshold_multiplier: float = 3.0,
+    baseline_fraction: float = 0.2,
 ) -> dict[str, dict[str, Any]]:
-    """Generate sliding windows independently for each recording and split."""
+    """Generate sliding windows with impact-centered labels for fall recordings."""
 
     if window_size <= 0:
         raise ValueError("window_size must be positive.")
@@ -639,34 +725,134 @@ def generate_sliding_windows(
         raise ValueError("stride must be positive.")
     if stride > window_size:
         raise ValueError("stride must be less than or equal to window_size.")
+    if impact_method not in {"peak", "threshold"}:
+        raise ValueError("impact_method must be either 'peak' or 'threshold'.")
 
     windowed_splits: dict[str, dict[str, Any]] = {}
-    print("\nStage 5: Sliding Window Generation")
+    impact_summary: dict[str, Any] = {
+        "impact_method": impact_method,
+        "fall_recordings_processed": 0,
+        "windows_relabeled_1_to_0": 0,
+        "impact_fallback_to_peak": 0,
+        "fall_recordings_without_fall_window": [],
+        "impact_indices_peak_vs_threshold": [],
+    }
+
+    print("\nStage 5: Sliding Window Generation (impact-centered fall labels)")
     print("=" * 40)
     print(f"Window size: {window_size}")
     print(f"Stride: {stride}")
+    print(f"Impact detection method: {impact_method}")
 
     for split_name, payload in tqdm(normalized_splits.items(), desc="Generating windows"):
         frame = payload["dataframe"].copy()
         features = payload["features"]
+        raw_features = payload.get("raw_features")
+        if raw_features is None:
+            raise ValueError(
+                f"Split {split_name} is missing raw_features required for impact detection."
+            )
+
         windows: list[np.ndarray] = []
         labels: list[int] = []
         subject_ids: list[str] = []
         recording_ids: list[str] = []
+        window_starts: list[int] = []
 
         for recording_id in sorted(frame["recording_id"].unique()):
             group = frame.loc[frame["recording_id"] == recording_id].copy()
             if len(group) < window_size:
                 continue
+
             group_indices = group.index.to_numpy()
             feature_group = features[group_indices]
+            raw_group = raw_features[group_indices]
             group = group.reset_index(drop=True)
+            recording_label = int(group.iloc[0]["binary_label"])
+
+            impact_index: int | None = None
+            used_peak_fallback = False
+            if recording_label == 1:
+                impact_summary["fall_recordings_processed"] += 1
+                magnitudes = compute_raw_acceleration_magnitude(raw_group)
+                peak_index = detect_impact_index_peak(magnitudes)
+                threshold_index, used_peak_fallback = detect_impact_index_threshold(
+                    magnitudes,
+                    threshold_multiplier=threshold_multiplier,
+                    baseline_fraction=baseline_fraction,
+                )
+                impact_summary["impact_indices_peak_vs_threshold"].append(
+                    {
+                        "split": split_name,
+                        "recording_id": recording_id,
+                        "peak_index": peak_index,
+                        "threshold_index": threshold_index,
+                        "delta": abs(peak_index - threshold_index),
+                    }
+                )
+                if used_peak_fallback:
+                    impact_summary["impact_fallback_to_peak"] += 1
+
+                if impact_method == "peak":
+                    impact_index = peak_index
+                else:
+                    impact_index = threshold_index
+
+            recording_window_labels: list[int] = []
+            recording_window_starts: list[int] = []
+
             for start in range(0, len(group_indices) - window_size + 1, stride):
                 window = feature_group[start : start + window_size]
                 windows.append(window)
-                labels.append(int(group.iloc[0]["binary_label"]))
+
+                if recording_label == 0:
+                    window_label = 0
+                else:
+                    assert impact_index is not None
+                    window_label = 1 if window_contains_impact(start, window_size, impact_index) else 0
+
+                labels.append(window_label)
+                recording_window_labels.append(window_label)
+                recording_window_starts.append(start)
                 subject_ids.append(group.iloc[0]["subject_id"])
                 recording_ids.append(recording_id)
+                window_starts.append(start)
+
+            if recording_label == 1:
+                old_fall_windows = len(recording_window_labels)
+                new_fall_windows = int(sum(recording_window_labels))
+                impact_summary["windows_relabeled_1_to_0"] += old_fall_windows - new_fall_windows
+
+                if new_fall_windows == 0:
+                    best_idx = int(
+                        np.argmin(
+                            [
+                                0
+                                if window_contains_impact(start, window_size, impact_index)
+                                else min(
+                                    abs(impact_index - start),
+                                    abs(impact_index - (start + window_size - 1)),
+                                )
+                                for start in recording_window_starts
+                            ]
+                        )
+                    )
+                    relabel_index = len(labels) - len(recording_window_labels) + best_idx
+                    labels[relabel_index] = 1
+                    recording_window_labels[best_idx] = 1
+                    impact_summary["fall_recordings_without_fall_window"].append(
+                        {
+                            "split": split_name,
+                            "recording_id": recording_id,
+                            "impact_index": impact_index,
+                            "forced_window_start": recording_window_starts[best_idx],
+                            "reason": "impact_not_contained_in_stride_grid",
+                        }
+                    )
+
+                assert sum(recording_window_labels) >= 1, (
+                    f"Fall recording {recording_id} produced zero impact-centered windows."
+                )
 
         if not windows:
             windowed_splits[split_name] = {
@@ -689,9 +875,33 @@ def generate_sliding_windows(
         print(f"- Number of windows: {len(windowed_splits[split_name]['windows'])}")
         print(f"- Window shape: {windowed_splits[split_name]['windows'].shape}")
         print("- Label distribution:")
-        print(pd.Series(windowed_splits[split_name]['labels']).value_counts().sort_index().to_string())
+        print(pd.Series(windowed_splits[split_name]["labels"]).value_counts().sort_index().to_string())
         print(f"- Average windows per recording: {len(windowed_splits[split_name]['windows']) / frame['recording_id'].nunique():.2f}")
 
+    print("\nImpact-centered labeling summary:")
+    print(f"- Fall recordings processed: {impact_summary['fall_recordings_processed']}")
+    print(f"- Windows relabeled 1->0: {impact_summary['windows_relabeled_1_to_0']}")
+    print(f"- Threshold detections that fell back to peak: {impact_summary['impact_fallback_to_peak']}")
+    flagged = impact_summary["fall_recordings_without_fall_window"]
+    print(f"- Fall recordings force-corrected (impact outside stride grid): {len(flagged)}")
+    if flagged:
+        for entry in flagged[:10]:
+            print(f"  * {entry['recording_id']} ({entry['reason']})")
+        if len(flagged) > 10:
+            print(f"  ... and {len(flagged) - 10} more")
+
+    peak_threshold_deltas = [
+        item["delta"] for item in impact_summary["impact_indices_peak_vs_threshold"]
+    ]
+    if peak_threshold_deltas:
+        print(
+            "- Peak vs threshold index delta: "
+            f"mean={np.mean(peak_threshold_deltas):.2f}, "
+            f"median={np.median(peak_threshold_deltas):.1f}, "
+            f"max={max(peak_threshold_deltas)}"
+        )
+
+    windowed_splits["_impact_summary"] = impact_summary
     return windowed_splits
 
 
@@ -718,6 +928,8 @@ def save_processed_datasets(
     print(f"Output directory: {output_dir}")
 
     for split_name in ["train", "val", "test"]:
+        if split_name not in windowed_splits:
+            continue
         payload = windowed_splits[split_name]
         feature_path = output_dir / f"{split_name}.npy"
         label_path = output_dir / f"{split_name}_labels.npy"
