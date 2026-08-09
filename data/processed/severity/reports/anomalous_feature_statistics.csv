@@ -1,0 +1,7 @@
+split,status,count
+train,normal,4394
+train,anomalous,90
+val,normal,1477
+val,anomalous,23
+test,normal,1176
+test,anomalous,24

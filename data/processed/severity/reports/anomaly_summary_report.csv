@@ -1,0 +1,4 @@
+split,fall_windows,anomalous_windows,anomaly_rate
+train,4484,90,0.0200713648528099
+val,1500,23,0.0153333333333333
+test,1200,24,0.02

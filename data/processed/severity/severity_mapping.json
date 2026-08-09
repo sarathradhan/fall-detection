@@ -1,0 +1,14 @@
+{
+  "cluster_to_severity": {
+    "0": 0,
+    "2": 1,
+    "1": 2
+  },
+  "severity_labels": {
+    "-1": "Non-applicable",
+    "0": "Mild",
+    "1": "Moderate",
+    "2": "Severe"
+  },
+  "note": "Mild/Moderate/Severe severity labels are derived from train-fall-window KMeans clustering of normalized IMU window features. Anomalies are identified by a train-only Isolation Forest and flagged separately."
+}

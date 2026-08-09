@@ -18,7 +18,9 @@ fall-detection/
 │   └── processed/        # Generated .npy artifacts (not tracked; reports/plots included)
 ├── src/
 │   └── data/             # Loader and preprocessing modules
+│       └── severity_labeling.py  # KMeans severity + Isolation Forest anomaly refinement
 ├── scripts/              # CLI entry points for preprocessing and EDA
+│   └── run_severity_labeling.py  # Execute the severity/anomaly pipeline
 ├── tests/                # Unit and integration tests
 ├── notebooks/            # Exploratory notebooks
 ├── requirements.txt
@@ -89,6 +91,39 @@ python scripts/run_phase2_eda.py
 python scripts/verify_preprocessing_eda_pipeline.py
 python scripts/inspect_processed_data.py
 ```
+
+### Generate fall severity labels
+
+This project can derive data-driven fall severity labels for fall windows only, using train-only K-means clustering on interpretable IMU window features.
+
+```bash
+python scripts/run_severity_labeling.py
+```
+
+To generate summary plots and CSV reports from the severity/anomaly outputs:
+
+```bash
+python scripts/run_severity_anomaly_analysis.py
+```
+
+The scripts write severity artifacts to `data/processed/severity/`, including:
+
+- `train_severity_labels.npy`, `val_severity_labels.npy`, `test_severity_labels.npy`
+- `train_refined_severity_labels.npy`, `val_refined_severity_labels.npy`, `test_refined_severity_labels.npy`
+- `train_anomaly_scores.npy`, `val_anomaly_scores.npy`, `test_anomaly_scores.npy`
+- `train_anomaly_flags.npy`, `val_anomaly_flags.npy`, `test_anomaly_flags.npy`
+- `feature_scaler.pkl`
+- `kmeans_model.pkl`
+- `isolation_forest.pkl`
+- `isolation_forest_config.json`
+- `cluster_statistics.csv`
+- `anomaly_summary.csv`
+- `anomaly_by_severity.csv`
+- `anomaly_by_subject.csv`
+- `severity_mapping.json`
+- `severity_summary.json`
+- `feature_names.json`
+- `clustering_features/` with per-split fall-window features and fall-window indices
 
 ### Run tests
 

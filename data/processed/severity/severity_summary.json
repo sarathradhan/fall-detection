@@ -1,0 +1,30 @@
+{
+  "split_counts": {
+    "train": {
+      "fall_windows": 4484,
+      "mild": 1659,
+      "moderate": 1267,
+      "severe": 1558
+    },
+    "val": {
+      "fall_windows": 1500,
+      "mild": 561,
+      "moderate": 421,
+      "severe": 518
+    },
+    "test": {
+      "fall_windows": 1200,
+      "mild": 457,
+      "moderate": 304,
+      "severe": 439
+    }
+  },
+  "cluster_to_severity": {
+    "0": "Mild",
+    "2": "Moderate",
+    "1": "Severe"
+  },
+  "anomaly_contamination": 0.02,
+  "anomaly_n_estimators": 256,
+  "anomaly_note": "Anomaly scores from Isolation Forest are decision_function outputs; larger values mean more normal samples. anomaly_flag == 1 denotes suspicious fall windows. Refined severity sets anomalous fall windows to -1 (uncertain)."
+}
