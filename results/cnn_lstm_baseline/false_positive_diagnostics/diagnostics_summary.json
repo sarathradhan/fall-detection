@@ -1,0 +1,19 @@
+{
+  "thresholds_evaluated": {
+    "0.5": 0.5,
+    "chosen": 0.25
+  },
+  "false_trigger_recordings_by_threshold": {
+    "threshold_0_25": 3,
+    "threshold_0_5": 1
+  },
+  "activity_judgments": {
+    "unexpected": 2,
+    "plausible_borderline": 2
+  },
+  "blip_classifications": {
+    "single_window_blip": 6
+  },
+  "recordings_changing_classification_between_thresholds": [],
+  "verdict": "The CNN-LSTM recall gain is useful but should be treated cautiously: the false triggers are only single-window blips, but at least one is an unexpected low-impact ADL activity. Prefer threshold 0.5 unless the extra chosen-threshold window recall is more important than the two added ADL trigger recordings."
+}

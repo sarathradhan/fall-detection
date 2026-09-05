@@ -1,0 +1,114 @@
+{
+  "seed": 42,
+  "input_shape": [
+    64,
+    6
+  ],
+  "batch_size": 64,
+  "max_epochs": 100,
+  "learning_rate": 0.001,
+  "loss": "binary_crossentropy",
+  "optimizer": "Adam",
+  "class_weights": {
+    "0": 0.5440134278254383,
+    "1": 6.180084745762712
+  },
+  "threshold_selection": "maximum validation F2; ties favor recall, then precision, then lower threshold",
+  "chosen_threshold": {
+    "threshold": 0.2,
+    "precision": 0.955966815571155,
+    "recall": 0.9986666666666667,
+    "f2": 0.9898242368177613
+  },
+  "interrupted": false,
+  "best_epoch": 8,
+  "tensorflow_version": "2.21.0",
+  "metrics": {
+    "test_threshold_0.5": {
+      "threshold": 0.5,
+      "precision": 0.9760923330585326,
+      "recall": 0.9866666666666667,
+      "f2": 0.9845335107267587,
+      "confusion_matrix": [
+        [
+          12398,
+          29
+        ],
+        [
+          16,
+          1184
+        ]
+      ],
+      "classification_report": {
+        "ADL/background": {
+          "precision": 0.9987111325922345,
+          "recall": 0.9976663716102036,
+          "f1-score": 0.9981884787246891,
+          "support": 12427.0
+        },
+        "fall": {
+          "precision": 0.9760923330585326,
+          "recall": 0.9866666666666667,
+          "f1-score": 0.9813510153336096,
+          "support": 1200.0
+        },
+        "accuracy": 0.9966977324429441,
+        "macro avg": {
+          "precision": 0.9874017328253836,
+          "recall": 0.9921665191384351,
+          "f1-score": 0.9897697470291493,
+          "support": 13627.0
+        },
+        "weighted avg": {
+          "precision": 0.9967193105154426,
+          "recall": 0.9966977324429441,
+          "f1-score": 0.9967057638153697,
+          "support": 13627.0
+        }
+      }
+    },
+    "test_chosen_threshold": {
+      "threshold": 0.2,
+      "precision": 0.9682926829268292,
+      "recall": 0.9925,
+      "f2": 0.9875621890547264,
+      "confusion_matrix": [
+        [
+          12388,
+          39
+        ],
+        [
+          9,
+          1191
+        ]
+      ],
+      "classification_report": {
+        "ADL/background": {
+          "precision": 0.9992740179075583,
+          "recall": 0.9968616721654462,
+          "f1-score": 0.9980663873670641,
+          "support": 12427.0
+        },
+        "fall": {
+          "precision": 0.9682926829268292,
+          "recall": 0.9925,
+          "f1-score": 0.980246913580247,
+          "support": 1200.0
+        },
+        "accuracy": 0.9964775812724738,
+        "macro avg": {
+          "precision": 0.9837833504171938,
+          "recall": 0.9946808360827231,
+          "f1-score": 0.9891566504736555,
+          "support": 13627.0
+        },
+        "weighted avg": {
+          "precision": 0.9965457870440612,
+          "recall": 0.9964775812724738,
+          "f1-score": 0.9964971961625303,
+          "support": 13627.0
+        }
+      }
+    }
+  }
+}

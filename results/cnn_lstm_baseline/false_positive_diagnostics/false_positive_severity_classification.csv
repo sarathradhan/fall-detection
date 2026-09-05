@@ -1,0 +1,7 @@
+threshold_label,threshold,threshold_name,subject_id,recording_id,activity_code,activity_name,total_windows,positive_window_count,positive_window_fraction,positive_window_indices,positive_segment_count,longest_positive_run,max_probability,blip_classification,classification_changes_between_thresholds
+0.5,0.5,threshold_0_5,SA03,SA03:D13_SA03_R04.txt,D13,"Sitting a moment, lying quickly, wait a moment, and sit again",12,0,0.0,,0,0,0.25662875175476074,single_window_blip,False
+chosen,0.25,threshold_0_25,SA03,SA03:D13_SA03_R04.txt,D13,"Sitting a moment, lying quickly, wait a moment, and sit again",12,1,0.08333333333333333,4,1,1,0.25662875175476074,single_window_blip,False
+0.5,0.5,threshold_0_5,SA03,SA03:D14_SA03_R05.txt,D14,"Being on one’s back change to lateral position, wait a moment, and change to one’s back",12,1,0.08333333333333333,6,1,1,0.6110070943832397,single_window_blip,False
+chosen,0.25,threshold_0_25,SA03,SA03:D14_SA03_R05.txt,D14,"Being on one’s back change to lateral position, wait a moment, and change to one’s back",12,1,0.08333333333333333,6,1,1,0.6110070943832397,single_window_blip,False
+0.5,0.5,threshold_0_5,SA09,SA09:D13_SA09_R04.txt,D13,"Sitting a moment, lying quickly, wait a moment, and sit again",12,0,0.0,,0,0,0.2775062918663025,single_window_blip,False
+chosen,0.25,threshold_0_25,SA09,SA09:D13_SA09_R04.txt,D13,"Sitting a moment, lying quickly, wait a moment, and sit again",12,1,0.08333333333333333,7,1,1,0.2775062918663025,single_window_blip,False

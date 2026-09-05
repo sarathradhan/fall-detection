@@ -24,7 +24,7 @@ fall-detection/
 ├── tests/                # Unit and integration tests
 ├── notebooks/            # Exploratory notebooks
 ├── requirements.txt
-└── PROJECT_SUMMARY.md    # Detailed project status and results
+└── PROJECT_STATUS_REPORT.md # Complete generated project status and data guide
 ```
 
 ## Setup
@@ -131,11 +131,21 @@ The scripts write severity artifacts to `data/processed/severity/`, including:
 pytest
 ```
 
+### Train the CNN baseline
+
+The standalone baseline uses the natural imbalanced training split and class weighting. It does not modify preprocessing outputs.
+
+```bash
+python scripts/train_cnn_baseline.py
+```
+
+Results are saved under `results/cnn_baseline/`.
+
 ## Processed data
 
 Large binary artifacts (`*.npy`, `*.pkl`) are excluded from git. After cloning, run the preprocessing script to regenerate them locally. Summary reports and plots under `data/processed/reports/` and `data/processed/plots/` are included for reference.
 
-See [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) for dataset statistics, class distribution, and pipeline details.
+See [PROJECT_STATUS_REPORT.md](PROJECT_STATUS_REPORT.md) for the complete pipeline guide, artifact inventory, CSV statistics, and 10-row samples for every project CSV.
 
 ## License
 

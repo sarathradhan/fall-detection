@@ -1,0 +1,21 @@
+{
+  "augmentation_ratio": 2,
+  "original": {
+    "name": "Before balancing (train)",
+    "total": 55423,
+    "adl": 50939,
+    "fall": 4484,
+    "fall_percentage": 8.090503942406583,
+    "adl_to_fall_ratio": 11.360169491525424
+  },
+  "balanced": {
+    "name": "After balancing (ratio=2x)",
+    "total": 59907,
+    "adl": 50939,
+    "fall": 8968,
+    "fall_percentage": 14.969869965112592,
+    "adl_to_fall_ratio": 5.680084745762712
+  },
+  "augmented_fall_windows": 4484,
+  "seed": 42
+}

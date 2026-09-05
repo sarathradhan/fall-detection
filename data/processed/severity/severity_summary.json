@@ -1,28 +1,36 @@
 {
+  "tested_k_values": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "selected_k": 2,
+  "selection_rule": "Selected the simplest K within a near-tie of the best silhouette, while also keeping Davies-Bouldin and Calinski-Harabasz close to their best values and requiring each cluster to remain above a minimum cluster share threshold.",
+  "k3_statement": "k=3 is not supported. k=3 was not selected because the clustering metrics and cluster profiles did not show a clearly defensible three-level low/medium/high progression, or the cluster-size distribution was too imbalanced for a stable three-class severity map.",
+  "cluster_to_severity": {
+    "0": 0,
+    "1": 1
+  },
   "split_counts": {
     "train": {
       "fall_windows": 4484,
-      "mild": 1659,
-      "moderate": 1267,
-      "severe": 1558
+      "low": 1697,
+      "medium": 2787,
+      "high": 0
     },
     "val": {
       "fall_windows": 1500,
-      "mild": 561,
-      "moderate": 421,
-      "severe": 518
+      "low": 563,
+      "medium": 937,
+      "high": 0
     },
     "test": {
       "fall_windows": 1200,
-      "mild": 457,
-      "moderate": 304,
-      "severe": 439
+      "low": 468,
+      "medium": 732,
+      "high": 0
     }
-  },
-  "cluster_to_severity": {
-    "0": "Mild",
-    "2": "Moderate",
-    "1": "Severe"
   },
   "anomaly_contamination": 0.02,
   "anomaly_n_estimators": 256,

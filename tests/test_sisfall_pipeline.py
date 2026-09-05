@@ -15,6 +15,7 @@ from src.data.sisfall_preprocessing import (
     normalize_splits,
     select_imu_channels,
     split_by_subjects,
+    validate_processed_dataset_contract,
 )
 
 
@@ -181,3 +182,46 @@ def test_split_by_subjects_includes_every_subject() -> None:
     assert "SA09" in assigned
     assert "SA14" in assigned
     assert sum(len(split_frame["subject_id"].unique()) for split_frame in splits.values()) == len(subjects)
+
+
+def test_validate_processed_dataset_contract(tmp_path: Path) -> None:
+    """The processed arrays must preserve split integrity and label validity."""
+
+    train_X = np.zeros((8, 64, 6), dtype=np.float32)
+    val_X = np.zeros((4, 64, 6), dtype=np.float32)
+    test_X = np.zeros((2, 64, 6), dtype=np.float32)
+
+    train_y = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64)
+    val_y = np.array([0, 1, 0, 1], dtype=np.int64)
+    test_y = np.array([0, 1], dtype=np.int64)
+
+    train_subjects = np.array(["SA01", "SA01", "SA02", "SA02", "SA03", "SA03", "SA04", "SA04"], dtype=object)
+    val_subjects = np.array(["SE01", "SE01", "SE02", "SE02"], dtype=object)
+    test_subjects = np.array(["SE03", "SE03"], dtype=object)
+
+    train_recordings = np.array(["SA01:r1", "SA01:r1", "SA02:r2", "SA02:r2", "SA03:r3", "SA03:r3", "SA04:r4", "SA04:r4"], dtype=object)
+    val_recordings = np.array(["SE01:r5", "SE01:r5", "SE02:r6", "SE02:r6"], dtype=object)
+    test_recordings = np.array(["SE03:r7", "SE03:r7"], dtype=object)
+
+    for split_name, X, y, subjects, recordings in [
+        ("train", train_X, train_y, train_subjects, train_recordings),
+        ("val", val_X, val_y, val_subjects, val_recordings),
+        ("test", test_X, test_y, test_subjects, test_recordings),
+    ]:
+        np.save(tmp_path / f"{split_name}.npy", X)
+        np.save(tmp_path / f"{split_name}_labels.npy", y)
+        np.save(tmp_path / f"{split_name}_subject_ids.npy", subjects)
+        np.save(tmp_path / f"{split_name}_recording_ids.npy", recordings)
+
+    scaler_path = tmp_path / "scaler.pkl"
+    with scaler_path.open("wb") as handle:
+        import pickle
+        pickle.dump(object(), handle)
+
+    summary = validate_processed_dataset_contract(tmp_path, scaler_path=scaler_path)
+
+    assert summary["is_valid"] is True
+    assert summary["split_counts"]["train"] == 8
+    assert summary["subject_overlap"] == 0
+    assert summary["label_distribution"]["train"][0] == 4
+    assert summary["label_distribution"]["train"][1] == 4

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pickle
 from pathlib import Path
 from typing import Any
@@ -958,7 +959,146 @@ def save_processed_datasets(
     saved_files["scaler"] = scaler_path
     print(f"Saved scaler: {scaler_path}")
 
+    validate_processed_dataset_contract(output_dir, scaler_path=scaler_path)
     return saved_files
+
+
+def validate_processed_dataset_contract(
+    processed_dir: str | Path = None,
+    scaler_path: str | Path | None = None,
+    split_names: tuple[str, ...] = ("train", "val", "test"),
+) -> dict[str, Any]:
+    """Validate the saved processed arrays for shape, labelling, leakage, and finiteness.
+
+    This enforces the dataset contract required by the CNN-LSTM training stage while
+    preserving the existing subject-wise split and train-only scaling behaviour.
+    """
+
+    if processed_dir is None:
+        processed_dir = Path(__file__).resolve().parents[2] / "data" / "processed"
+    processed_dir = Path(processed_dir).expanduser().resolve()
+    if not processed_dir.exists():
+        raise FileNotFoundError(f"Processed dataset directory does not exist: {processed_dir}")
+
+    if scaler_path is None:
+        scaler_path = processed_dir / "scaler.pkl"
+    scaler_path = Path(scaler_path).expanduser().resolve()
+
+    summary: dict[str, Any] = {
+        "processed_dir": str(processed_dir),
+        "scaler_present": scaler_path.exists(),
+        "is_valid": True,
+        "issues": [],
+        "split_counts": {},
+        "window_shape": {},
+        "label_distribution": {},
+        "subject_overlap": 0,
+        "recording_overlap": 0,
+        "missing_values": 0,
+        "infinite_values": 0,
+        "unique_subjects_per_split": {},
+        "unique_recordings_per_split": {},
+    }
+
+    all_subjects: dict[str, set[str]] = {}
+    all_recordings: dict[str, set[str]] = {}
+
+    for split_name in split_names:
+        feature_path = processed_dir / f"{split_name}.npy"
+        label_path = processed_dir / f"{split_name}_labels.npy"
+        subject_path = processed_dir / f"{split_name}_subject_ids.npy"
+        recording_path = processed_dir / f"{split_name}_recording_ids.npy"
+
+        missing = [str(path) for path in [feature_path, label_path, subject_path, recording_path] if not path.exists()]
+        if missing:
+            summary["issues"].append(f"{split_name}: missing files -> {missing}")
+            summary["is_valid"] = False
+            continue
+
+        try:
+            features = np.load(feature_path)
+            labels = np.load(label_path)
+            subjects = np.asarray(np.load(subject_path, allow_pickle=True), dtype=str)
+            recordings = np.asarray(np.load(recording_path, allow_pickle=True), dtype=str)
+        except Exception as exc:  # pragma: no cover - defensive programming
+            summary["issues"].append(f"{split_name}: failed to load arrays ({exc})")
+            summary["is_valid"] = False
+            continue
+
+        summary["split_counts"][split_name] = int(features.shape[0])
+        summary["window_shape"][split_name] = list(features.shape)
+        summary["unique_subjects_per_split"][split_name] = sorted(set(subjects.tolist()))
+        summary["unique_recordings_per_split"][split_name] = sorted(set(recordings.tolist()))
+
+        if features.ndim != 3:
+            summary["issues"].append(f"{split_name}: feature tensor has ndim={features.ndim}, expected 3")
+            summary["is_valid"] = False
+        if features.shape[1:] != (64, 6):
+            summary["issues"].append(
+                f"{split_name}: unexpected feature shape {features.shape}; expected (N, 64, 6)"
+            )
+            summary["is_valid"] = False
+        if labels.shape[0] != features.shape[0]:
+            summary["issues"].append(
+                f"{split_name}: label count mismatch ({labels.shape[0]} != {features.shape[0]})"
+            )
+            summary["is_valid"] = False
+        if subjects.shape[0] != features.shape[0] or recordings.shape[0] != features.shape[0]:
+            summary["issues"].append(
+                f"{split_name}: subject/recording array lengths mismatch with features"
+            )
+            summary["is_valid"] = False
+
+        summary["missing_values"] += int(np.isnan(features).sum()) + int(np.isnan(labels).sum())
+        summary["infinite_values"] += int(np.isinf(features).sum()) + int(np.isinf(labels).sum())
+
+        if summary["missing_values"] > 0 or summary["infinite_values"] > 0:
+            summary["issues"].append(f"{split_name}: NaN/Inf detected in feature or label arrays")
+            summary["is_valid"] = False
+
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        label_counts = {int(label): int(count) for label, count in zip(unique_labels, counts)}
+        summary["label_distribution"][split_name] = label_counts
+        if not set(label_counts).issubset({0, 1}):
+            summary["issues"].append(f"{split_name}: labels outside {0, 1}: {sorted(label_counts)}")
+            summary["is_valid"] = False
+
+        all_subjects[split_name] = set(subjects.tolist())
+        all_recordings[split_name] = set(recordings.tolist())
+
+    subject_overlap = set.intersection(*(subjects for subjects in all_subjects.values())) if all_subjects else set()
+    recording_overlap = set.intersection(*(recordings for recordings in all_recordings.values())) if all_recordings else set()
+    summary["subject_overlap"] = int(len(subject_overlap))
+    summary["recording_overlap"] = int(len(recording_overlap))
+    if subject_overlap or recording_overlap:
+        summary["issues"].append(
+            "Subject and/or recording leakage detected across splits: "
+            f"subjects={sorted(subject_overlap)[:10]}, recordings={sorted(recording_overlap)[:10]}"
+        )
+        summary["is_valid"] = False
+
+    if not scaler_path.exists():
+        summary["issues"].append(f"Scaler file missing: {scaler_path}")
+        summary["is_valid"] = False
+
+    verification_dir = processed_dir / "verification"
+    verification_dir.mkdir(parents=True, exist_ok=True)
+    (verification_dir / "dataset_contract_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    print("\nDataset Contract Validation")
+    print("=" * 40)
+    print(f"Valid: {summary['is_valid']}")
+    print(f"Split counts: {summary['split_counts']}")
+    print(f"Subject overlap: {summary['subject_overlap']}")
+    print(f"Recording overlap: {summary['recording_overlap']}")
+    print(f"NaN count: {summary['missing_values']}")
+    print(f"Inf count: {summary['infinite_values']}")
+    if summary["issues"]:
+        print("Issues:")
+        for issue in summary["issues"]:
+            print(f"- {issue}")
+
+    return summary
 
 
 def validate_preprocessed_dataframe(preprocessed_df: pd.DataFrame) -> dict[str, Any]:

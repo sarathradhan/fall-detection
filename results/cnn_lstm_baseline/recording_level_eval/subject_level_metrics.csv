@@ -1,0 +1,7 @@
+subject_id,total_recordings,fall_recordings,adl_recordings,fall_recordings_missed_threshold_0_5,fall_recordings_detected_threshold_0_5,subject_recall_threshold_0_5,review_below_90_percent_threshold_0_5,fall_recordings_missed_threshold_0_25,fall_recordings_detected_threshold_0_25,subject_recall_threshold_0_25,review_below_90_percent_threshold_0_25
+SA02,154,75,79,0,75,1.0,False,0,75,1.0,False
+SA03,154,75,79,0,75,1.0,False,0,75,1.0,False
+SA09,154,75,79,0,75,1.0,False,0,75,1.0,False
+SA14,154,75,79,0,75,1.0,False,0,75,1.0,False
+SE11,59,0,59,0,0,,False,0,0,,False
+SE14,59,0,59,0,0,,False,0,0,,False

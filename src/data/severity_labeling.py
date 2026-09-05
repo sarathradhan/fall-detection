@@ -5,9 +5,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score, silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 from src.data.severity_anomaly import (
@@ -360,12 +365,384 @@ def save_clustering_features(
     np.save(path / f"{split_name}_fall_indices.npy", fall_indices)
 
 
+def _validate_feature_matrix(features: np.ndarray, name: str = "fall_features") -> None:
+    if features.ndim != 2:
+        raise ValueError(f"{name} must be a 2D array of shape (n_windows, n_features); got shape {features.shape}.")
+    if not np.isfinite(features).all():
+        raise ValueError(f"{name} contains NaN or infinite values.")
+
+
+def _compute_kmeans_metrics(train_scaled: np.ndarray, labels: np.ndarray) -> dict[str, float | int]:
+    if len(np.unique(labels)) < 2:
+        return {
+            "silhouette": float("nan"),
+            "davies_bouldin": float("nan"),
+            "calinski_harabasz": float("nan"),
+            "inertia": float("nan"),
+        }
+
+    return {
+        "silhouette": float(silhouette_score(train_scaled, labels)),
+        "davies_bouldin": float(davies_bouldin_score(train_scaled, labels)),
+        "calinski_harabasz": float(calinski_harabasz_score(train_scaled, labels)),
+    }
+
+
+def _cluster_intensity_profile(train_features: np.ndarray, train_labels: np.ndarray, feature_names: list[str]) -> pd.DataFrame:
+    if train_features.shape[0] != train_labels.shape[0]:
+        raise ValueError("Feature and label counts do not match for cluster profile generation.")
+
+    feature_index = {name: idx for idx, name in enumerate(feature_names)}
+    required_names = [
+        "acc_mag_peak",
+        "acc_mag_rms",
+        "acc_mag_mean",
+        "gyro_mag_peak",
+        "gyro_mag_rms",
+        "gyro_mag_mean",
+        "jerk_mag_peak",
+        "jerk_mag_rms",
+        "delta_velocity_peak",
+        "sma_mag_mean",
+        "energy_mag_mean",
+    ]
+
+    missing = [name for name in required_names if name not in feature_index]
+    for missing_name in missing:
+        feature_index[missing_name] = None
+
+    rows: list[dict[str, Any]] = []
+    for cluster_id in sorted(np.unique(train_labels)):
+        cluster_mask = train_labels == cluster_id
+        cluster_features = train_features[cluster_mask]
+        if cluster_features.size == 0:
+            continue
+
+        row = {
+            "cluster_id": int(cluster_id),
+            "size": int(cluster_mask.sum()),
+            "peak_accel_mean": float(cluster_features[:, feature_index.get("acc_mag_peak", 0)].mean()) if feature_index.get("acc_mag_peak") is not None else float("nan"),
+            "peak_accel_median": float(np.median(cluster_features[:, feature_index.get("acc_mag_peak", 0)])) if feature_index.get("acc_mag_peak") is not None else float("nan"),
+            "acc_rms_mean": float(cluster_features[:, feature_index.get("acc_mag_rms", 0)].mean()) if feature_index.get("acc_mag_rms") is not None else float("nan"),
+            "gyro_peak_mean": float(cluster_features[:, feature_index.get("gyro_mag_peak", 0)].mean()) if feature_index.get("gyro_mag_peak") is not None else float("nan"),
+            "gyro_rms_mean": float(cluster_features[:, feature_index.get("gyro_mag_rms", 0)].mean()) if feature_index.get("gyro_mag_rms") is not None else float("nan"),
+            "energy_mean": float(cluster_features[:, feature_index.get("energy_mag_mean", 0)].mean()) if feature_index.get("energy_mag_mean") is not None else float("nan"),
+            "delta_velocity_mean": float(cluster_features[:, feature_index.get("delta_velocity_peak", 0)].mean()) if feature_index.get("delta_velocity_peak") is not None else float("nan"),
+            "sma_mean": float(cluster_features[:, feature_index.get("sma_mag_mean", 0)].mean()) if feature_index.get("sma_mag_mean") is not None else float("nan"),
+            "jerk_mean": float(cluster_features[:, feature_index.get("jerk_mag_peak", 0)].mean()) if feature_index.get("jerk_mag_peak") is not None else float("nan"),
+        }
+        rows.append(row)
+
+    return pd.DataFrame(rows).sort_values(by=["cluster_id"]).reset_index(drop=True)
+
+
+def _evaluate_k_values(
+    train_features: np.ndarray,
+    feature_names: list[str],
+    k_values: list[int],
+    random_states: tuple[int, ...] = (0, 10, 20, 42, 100),
+    n_init: int = 20,
+) -> tuple[pd.DataFrame, dict[int, dict[str, Any]], dict[int, list[dict[str, Any]]], dict[int, np.ndarray]]:
+    if train_features.shape[0] == 0:
+        raise ValueError("No training fall features available for K-Means evaluation.")
+
+    feature_scaler = fit_feature_scaler(train_features)
+    train_scaled = feature_scaler.transform(train_features)
+
+    comparison_rows: list[dict[str, Any]] = []
+    selected_cluster_profiles: dict[int, dict[str, Any]] = {}
+    per_k_metric_runs: dict[int, list[dict[str, Any]]] = {}
+    per_k_cluster_sizes: dict[int, np.ndarray] = {}
+
+    for k in sorted(set(int(k) for k in k_values)):
+        if k < 2:
+            raise ValueError(f"K-Means evaluation requires k >= 2; got {k}.")
+
+        runs: list[dict[str, Any]] = []
+        for seed in random_states:
+            model = KMeans(n_clusters=k, random_state=seed, n_init=n_init)
+            labels = model.fit_predict(train_scaled)
+            size_counts = np.bincount(labels, minlength=k)
+            size_pct = size_counts / size_counts.sum() if size_counts.sum() else np.zeros_like(size_counts)
+            metrics = _compute_kmeans_metrics(train_scaled, labels)
+            metrics["k"] = k
+            metrics["seed"] = int(seed)
+            metrics["cluster_sizes"] = size_counts.tolist()
+            metrics["cluster_percentages"] = size_pct.tolist()
+            metrics["min_cluster_pct"] = float(size_pct.min()) if size_pct.size else 0.0
+            metrics["max_cluster_pct"] = float(size_pct.max()) if size_pct.size else 0.0
+            metrics["inertia"] = float(model.inertia_)
+            runs.append(metrics)
+
+        run_df = pd.DataFrame(runs)
+        mean_row = {
+            "k": k,
+            "silhouette": float(run_df["silhouette"].mean()),
+            "davies_bouldin": float(run_df["davies_bouldin"].mean()),
+            "calinski_harabasz": float(run_df["calinski_harabasz"].mean()),
+            "silhouette_std": float(run_df["silhouette"].std(ddof=0)),
+            "davies_bouldin_std": float(run_df["davies_bouldin"].std(ddof=0)),
+            "calinski_harabasz_std": float(run_df["calinski_harabasz"].std(ddof=0)),
+            "mean_inertia": float(run_df["inertia"].mean()),
+            "min_cluster_pct": float(run_df["min_cluster_pct"].mean()),
+            "max_cluster_pct": float(run_df["max_cluster_pct"].mean()),
+            "cluster_size_range": str([int(np.min(run_df["cluster_sizes"].apply(lambda x: min(x)))) if not run_df.empty else 0, int(np.max(run_df["cluster_sizes"].apply(lambda x: max(x)))) if not run_df.empty else 0]),
+        }
+        comparison_rows.append(mean_row)
+        per_k_metric_runs[k] = runs
+
+        final_model = KMeans(n_clusters=k, random_state=42, n_init=n_init)
+        final_labels = final_model.fit_predict(train_scaled)
+        final_cluster_sizes = np.bincount(final_labels, minlength=k)
+        per_k_cluster_sizes[k] = final_cluster_sizes
+        selected_cluster_profiles[k] = {
+            "model": final_model,
+            "labels": final_labels,
+            "cluster_sizes": final_cluster_sizes,
+            "cluster_percentages": (final_cluster_sizes / final_cluster_sizes.sum()) if final_cluster_sizes.sum() else np.zeros_like(final_cluster_sizes),
+            "profile_table": _cluster_intensity_profile(train_features, final_labels, feature_names),
+        }
+
+    comparison_df = pd.DataFrame(comparison_rows)
+    return comparison_df, selected_cluster_profiles, per_k_metric_runs, per_k_cluster_sizes
+
+
+def _select_best_k(comparison_df: pd.DataFrame) -> tuple[int, dict[str, Any]]:
+    if comparison_df.empty:
+        raise ValueError("No K-Means candidates were evaluated.")
+
+    valid = comparison_df.copy()
+    valid = valid[valid["min_cluster_pct"] >= 0.05].copy()
+    if valid.empty:
+        valid = comparison_df.copy()
+
+    top_silhouette = valid["silhouette"].max()
+    best_db = valid["davies_bouldin"].min()
+    best_ch = valid["calinski_harabasz"].max()
+
+    near_tie_mask = (
+        (valid["silhouette"] >= top_silhouette - 0.02)
+        & (valid["davies_bouldin"] <= best_db + 0.15)
+        & (valid["calinski_harabasz"] >= best_ch - 0.05 * max(abs(best_ch), 1.0))
+    )
+    if near_tie_mask.any():
+        candidate = valid.loc[near_tie_mask].sort_values(by=["k"]).iloc[0]
+        selected_k = int(candidate["k"])
+        rule = (
+            "Selected the simplest K within a near-tie of the best silhouette, while also keeping "
+            "Davies-Bouldin and Calinski-Harabasz close to their best values and requiring each cluster "
+            "to remain above a minimum cluster share threshold."
+        )
+    else:
+        candidate = valid.sort_values(by=["silhouette", "davies_bouldin", "calinski_harabasz", "k"], ascending=[False, True, False, True]).iloc[0]
+        selected_k = int(candidate["k"])
+        rule = (
+            "Selected the K with the best silhouette score, then the lowest Davies-Bouldin score, then the highest "
+            "Calinski-Harabasz score, with a final guard to avoid extremely tiny clusters."
+        )
+
+    return selected_k, {"rule": rule, "best_silhouette": float(top_silhouette), "best_db": float(best_db), "best_ch": float(best_ch)}
+
+
+def _save_k_selection_artifacts(
+    output_dir: Path,
+    comparison_df: pd.DataFrame,
+    selected_k: int,
+    k_selection_meta: dict[str, Any],
+    final_model: KMeans,
+    final_scaler: StandardScaler,
+    profile_table: pd.DataFrame,
+    final_cluster_sizes: np.ndarray,
+    final_cluster_percentages: np.ndarray,
+    stability_summary: pd.DataFrame,
+    selected_k3_statement: str,
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    comparison_df.to_csv(output_dir / "severity_k_comparison.csv", index=False)
+    profile_table.to_csv(output_dir / "severity_cluster_profiles.csv", index=False)
+    pd.DataFrame({
+        "cluster_id": np.arange(len(final_cluster_sizes), dtype=int),
+        "cluster_size": final_cluster_sizes.astype(int),
+        "cluster_percentage": final_cluster_percentages.astype(float),
+    }).to_csv(output_dir / "severity_cluster_sizes.csv", index=False)
+
+    model_selection = {
+        "selected_k": int(selected_k),
+        "selection_rule": k_selection_meta["rule"],
+        "best_silhouette": float(k_selection_meta["best_silhouette"]),
+        "best_davies_bouldin": float(k_selection_meta["best_db"]),
+        "best_calinski_harabasz": float(k_selection_meta["best_ch"]),
+        "k3_statement": selected_k3_statement,
+        "tested_k_values": comparison_df["k"].tolist(),
+        "selected_cluster_sizes": final_cluster_sizes.astype(int).tolist(),
+        "selected_cluster_percentages": final_cluster_percentages.astype(float).tolist(),
+        "recommendation": (
+            "If the selected k is not 3, the downstream CNN-LSTM severity head must be adjusted to match the final class count before training."
+            if selected_k != 3 else "k=3 remains compatible with the current three-class severity head."
+        ),
+    }
+    with (output_dir / "severity_model_selection.json").open("w", encoding="utf-8") as handle:
+        json.dump(model_selection, handle, indent=2)
+
+    with (output_dir / "severity_scaler.pkl").open("wb") as handle:
+        import pickle
+        pickle.dump(final_scaler, handle)
+    with (output_dir / "severity_kmeans_model.pkl").open("wb") as handle:
+        import pickle
+        pickle.dump(final_model, handle)
+
+    stability_summary.to_csv(output_dir / "severity_k_stability.csv", index=False)
+
+    summary_markdown = output_dir / "SEVERITY_ANALYSIS_SUMMARY.md"
+    summary_text = f"# Severity cluster selection summary\n\n"
+    summary_text += "## Model selection\n\n"
+    summary_text += f"- Tested k values: {comparison_df['k'].tolist()}\n"
+    summary_text += f"- Selected k: {selected_k}\n"
+    summary_text += f"- Selection rule: {k_selection_meta['rule']}\n"
+    summary_text += f"- k=3 statement: {selected_k3_statement}\n\n"
+    summary_text += "## Comparison metrics\n\n"
+    summary_text += comparison_df.to_string(index=False)
+    summary_text += "\n\n## Cluster profiles\n\n"
+    summary_text += profile_table.to_string(index=False)
+    summary_text += "\n\n## Stability analysis\n\n"
+    summary_text += stability_summary.to_string(index=False)
+    summary_text += "\n"
+    summary_markdown.write_text(summary_text, encoding="utf-8")
+
+
+def _compute_stability_summary(per_k_metric_runs: dict[int, list[dict[str, Any]]]) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for k, runs in sorted(per_k_metric_runs.items()):
+        run_df = pd.DataFrame(runs)
+        if run_df.empty:
+            continue
+        rows.append(
+            {
+                "k": int(k),
+                "mean_silhouette": float(run_df["silhouette"].mean()),
+                "std_silhouette": float(run_df["silhouette"].std(ddof=0)),
+                "mean_davies_bouldin": float(run_df["davies_bouldin"].mean()),
+                "std_davies_bouldin": float(run_df["davies_bouldin"].std(ddof=0)),
+                "mean_calinski_harabasz": float(run_df["calinski_harabasz"].mean()),
+                "std_calinski_harabasz": float(run_df["calinski_harabasz"].std(ddof=0)),
+                "mean_cluster_size_min_pct": float(run_df["min_cluster_pct"].mean()),
+                "mean_cluster_size_max_pct": float(run_df["max_cluster_pct"].mean()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _save_k_selection_plots(
+    output_dir: Path,
+    comparison_df: pd.DataFrame,
+    selection_k: int,
+    per_k_cluster_sizes: dict[int, np.ndarray],
+    scaler: StandardScaler,
+    train_features: np.ndarray,
+    val_features: np.ndarray,
+    test_features: np.ndarray,
+    selected_model: KMeans,
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    axes = axes.flatten()
+
+    axes[0].plot(comparison_df["k"], comparison_df["mean_inertia"], marker="o")
+    axes[0].set_title("Elbow curve (inertia vs k)")
+    axes[0].set_xlabel("k")
+    axes[0].set_ylabel("Inertia")
+    axes[0].grid(True, alpha=0.3)
+
+    axes[1].plot(comparison_df["k"], comparison_df["silhouette"], marker="o", color="forestgreen")
+    axes[1].set_title("Silhouette vs k")
+    axes[1].set_xlabel("k")
+    axes[1].set_ylabel("Silhouette")
+    axes[1].grid(True, alpha=0.3)
+
+    axes[2].plot(comparison_df["k"], comparison_df["davies_bouldin"], marker="o", color="darkorange")
+    axes[2].set_title("Davies-Bouldin vs k")
+    axes[2].set_xlabel("k")
+    axes[2].set_ylabel("DB index")
+    axes[2].grid(True, alpha=0.3)
+
+    axes[3].plot(comparison_df["k"], comparison_df["calinski_harabasz"], marker="o", color="royalblue")
+    axes[3].set_title("Calinski-Harabasz vs k")
+    axes[3].set_xlabel("k")
+    axes[3].set_ylabel("CH index")
+    axes[3].grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(output_dir / "severity_k_metrics.png", dpi=200)
+    plt.close(fig)
+
+    cluster_fig, cluster_axes = plt.subplots(len(per_k_cluster_sizes), 1, figsize=(10, 4 * len(per_k_cluster_sizes)), sharex=True)
+    if len(per_k_cluster_sizes) == 1:
+        cluster_axes = [cluster_axes]
+    for ax, k in zip(cluster_axes, sorted(per_k_cluster_sizes.keys())):
+        sizes = per_k_cluster_sizes[k]
+        ax.bar(np.arange(k), sizes, color="steelblue")
+        ax.set_title(f"Cluster-size distribution for k={k}")
+        ax.set_xlabel("Cluster ID")
+        ax.set_ylabel("Count")
+        ax.grid(axis="y", alpha=0.3)
+    cluster_fig.tight_layout()
+    cluster_fig.savefig(output_dir / "severity_cluster_size_distribution.png", dpi=200)
+    plt.close(cluster_fig)
+
+    if train_features.shape[0] > 0:
+        pca = PCA(n_components=2)
+        train_scaled = scaler.transform(train_features)
+        train_pca = pca.fit_transform(train_scaled)
+        train_labels = selected_model.predict(train_scaled)
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+        scatter = ax.scatter(train_pca[:, 0], train_pca[:, 1], c=train_labels, cmap="viridis", s=20, alpha=0.8)
+        ax.set_title(f"PCA visualization of train fall clusters (selected k={selection_k})")
+        ax.set_xlabel("PC1")
+        ax.set_ylabel("PC2")
+        fig.colorbar(scatter, ax=ax, label="Cluster ID")
+        fig.tight_layout()
+        fig.savefig(output_dir / "severity_train_pca_clusters.png", dpi=200)
+        plt.close(fig)
+
+        if val_features.shape[0] > 0:
+            val_scaled = scaler.transform(val_features)
+            val_pca = pca.transform(val_scaled)
+            val_labels = selected_model.predict(val_scaled)
+            fig, ax = plt.subplots(figsize=(8, 8))
+            scatter = ax.scatter(val_pca[:, 0], val_pca[:, 1], c=val_labels, cmap="viridis", s=20, alpha=0.8)
+            ax.set_title(f"PCA visualization of val fall clusters (selected k={selection_k})")
+            ax.set_xlabel("PC1")
+            ax.set_ylabel("PC2")
+            fig.colorbar(scatter, ax=ax, label="Cluster ID")
+            fig.tight_layout()
+            fig.savefig(output_dir / "severity_val_pca_clusters.png", dpi=200)
+            plt.close(fig)
+
+        if test_features.shape[0] > 0:
+            test_scaled = scaler.transform(test_features)
+            test_pca = pca.transform(test_scaled)
+            test_labels = selected_model.predict(test_scaled)
+            fig, ax = plt.subplots(figsize=(8, 8))
+            scatter = ax.scatter(test_pca[:, 0], test_pca[:, 1], c=test_labels, cmap="viridis", s=20, alpha=0.8)
+            ax.set_title(f"PCA visualization of test fall clusters (selected k={selection_k})")
+            ax.set_xlabel("PC1")
+            ax.set_ylabel("PC2")
+            fig.colorbar(scatter, ax=ax, label="Cluster ID")
+            fig.tight_layout()
+            fig.savefig(output_dir / "severity_test_pca_clusters.png", dpi=200)
+            plt.close(fig)
+
+
 def run_severity_pipeline(
     processed_dir: str | Path | None = None,
     output_dir: str | Path | None = None,
-    n_clusters: int = 3,
+    n_clusters: int | None = None,
     random_state: int = 42,
     n_init: int = 20,
+    k_values: list[int] | None = None,
+    random_states: tuple[int, ...] = (0, 10, 20, 42, 100),
 ) -> SeverityPipelineResult:
     _ensure_output_dirs()
 
@@ -379,6 +756,11 @@ def run_severity_pipeline(
     else:
         output_dir = Path(output_dir).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    if k_values is None:
+        k_values = [2, 3, 4, 5]
+    else:
+        k_values = sorted(set(int(k) for k in k_values))
 
     split_data: dict[str, dict[str, Any]] = {}
     split_fall_features: dict[str, np.ndarray] = {}
@@ -395,6 +777,7 @@ def run_severity_pipeline(
             split_fall_indices[split] = fall_indices
         else:
             features, feature_names = extract_window_features(fall_windows)
+            _validate_feature_matrix(features, name=f"{split}_fall_features")
             split_fall_features[split] = features
             split_fall_indices[split] = fall_indices
             save_clustering_features(split, features, fall_indices)
@@ -414,14 +797,49 @@ def run_severity_pipeline(
 
     feature_scaler = fit_feature_scaler(split_fall_features["train"])
     train_scaled = feature_scaler.transform(split_fall_features["train"])
-    kmeans_model = fit_kmeans(train_scaled, n_clusters=n_clusters, random_state=random_state, n_init=n_init)
 
-    isolation_forest = fit_isolation_forest(
-        train_scaled,
-        contamination=ANOMALY_CONTAMINATION,
-        random_state=random_state,
-        n_estimators=ANOMALY_N_ESTIMATORS,
+    comparison_df, cluster_profiles, per_k_metric_runs, per_k_cluster_sizes = _evaluate_k_values(
+        split_fall_features["train"], feature_names, k_values, random_states=random_states, n_init=n_init
     )
+    selected_k, k_selection_meta = _select_best_k(comparison_df)
+
+    if n_clusters is not None:
+        selected_k = int(n_clusters)
+
+    final_model = KMeans(n_clusters=selected_k, random_state=random_state, n_init=n_init)
+    final_model.fit(train_scaled)
+    final_labels_train = final_model.predict(train_scaled)
+    train_cluster_sizes = np.bincount(final_labels_train, minlength=selected_k)
+    train_cluster_percentages = train_cluster_sizes / train_cluster_sizes.sum() if train_cluster_sizes.sum() else np.zeros_like(train_cluster_sizes)
+
+    cluster_profile_table = cluster_profiles[selected_k]["profile_table"]
+    intensity_rank = cluster_profile_table.sort_values(
+        by=["peak_accel_mean", "gyro_peak_mean", "energy_mean"],
+        ascending=[True, True, True],
+        ignore_index=True,
+    )
+
+    if selected_k == 3:
+        cluster_order = intensity_rank["cluster_id"].tolist()
+        cluster_to_severity = {int(cluster_id): idx for idx, cluster_id in enumerate(cluster_order)}
+        k3_statement = "k=3 is supported"
+    else:
+        cluster_to_severity = {int(cluster_id): idx for idx, cluster_id in enumerate(intensity_rank["cluster_id"].tolist())}
+        k3_statement = "k=3 is not supported"
+
+    if selected_k == 3:
+        k3_support_reason = (
+            f"The selected k={selected_k} produced a meaningful low → medium → high intensity progression based on "
+            f"peak acceleration, RMS, gyroscope peak, and energy, with no cluster below the minimum cluster share threshold."
+        )
+    else:
+        k3_support_reason = (
+            "k=3 was not selected because the clustering metrics and cluster profiles did not show a clearly defensible "
+            "three-level low/medium/high progression, or the cluster-size distribution was too imbalanced for a stable three-class severity map."
+        )
+
+    selected_k3_statement = f"{k3_statement}. {k3_support_reason}"
+    stability_summary = _compute_stability_summary(per_k_metric_runs)
 
     split_cluster_ids: dict[str, np.ndarray] = {}
     split_anomaly_scores: dict[str, np.ndarray] = {}
@@ -434,14 +852,29 @@ def run_severity_pipeline(
             split_anomaly_flags[split] = np.empty((0,), dtype=np.int64)
         else:
             scaled = feature_scaler.transform(split_fall_features[split])
-            split_cluster_ids[split] = kmeans_model.predict(scaled)
-            split_anomaly_scores[split] = compute_anomaly_scores(isolation_forest, scaled)
-            split_anomaly_flags[split] = compute_anomaly_flags(isolation_forest, scaled)
+            split_cluster_ids[split] = final_model.predict(scaled)
+            split_anomaly_scores[split] = compute_anomaly_scores(
+                fit_isolation_forest(
+                    train_scaled,
+                    contamination=ANOMALY_CONTAMINATION,
+                    random_state=random_state,
+                    n_estimators=ANOMALY_N_ESTIMATORS,
+                ),
+                scaled,
+            )
+            split_anomaly_flags[split] = compute_anomaly_flags(
+                fit_isolation_forest(
+                    train_scaled,
+                    contamination=ANOMALY_CONTAMINATION,
+                    random_state=random_state,
+                    n_estimators=ANOMALY_N_ESTIMATORS,
+                ),
+                scaled,
+            )
 
     cluster_stats = compute_cluster_statistics(split_cluster_ids, split_fall_features, feature_names)
-    cluster_to_severity = map_clusters_to_severity(cluster_stats)
     cluster_stats["severity_label"] = cluster_stats["cluster_id"].map(cluster_to_severity)
-    cluster_stats["severity_name"] = cluster_stats["severity_label"].map(SEVERITY_LABELS)
+    cluster_stats["severity_name"] = cluster_stats["severity_label"].map({value: name for value, name in SEVERITY_LABELS.items()})
     cluster_stats = cluster_stats.sort_values(by=["severity_label", "cluster_id"]).reset_index(drop=True)
 
     severity_labels: dict[str, np.ndarray] = {}
@@ -476,7 +909,7 @@ def run_severity_pipeline(
         )
 
         fall_severity_labels = severity_labels[split][split_fall_indices[split]]
-        for severity_label, severity_name in [(0, "Mild"), (1, "Moderate"), (2, "Severe")]:
+        for severity_label, severity_name in [(0, "Low"), (1, "Medium"), (2, "High")]:
             severity_fall_mask = fall_severity_labels == severity_label
             severity_count = int(severity_fall_mask.sum())
             if severity_count == 0:
@@ -516,8 +949,12 @@ def run_severity_pipeline(
     anomaly_by_subject = pd.DataFrame(anomaly_by_subject_rows)
 
     severity_summary: dict[str, Any] = {
+        "tested_k_values": k_values,
+        "selected_k": selected_k,
+        "selection_rule": k_selection_meta["rule"],
+        "k3_statement": selected_k3_statement,
+        "cluster_to_severity": {str(cluster_id): idx for cluster_id, idx in cluster_to_severity.items()},
         "split_counts": {},
-        "cluster_to_severity": {str(cluster_id): SEVERITY_LABELS[severity] for cluster_id, severity in cluster_to_severity.items()},
         "anomaly_contamination": ANOMALY_CONTAMINATION,
         "anomaly_n_estimators": ANOMALY_N_ESTIMATORS,
         "anomaly_note": "Anomaly scores from Isolation Forest are decision_function outputs; larger values mean more normal samples. anomaly_flag == 1 denotes suspicious fall windows. Refined severity sets anomalous fall windows to -1 (uncertain).",
@@ -526,10 +963,15 @@ def run_severity_pipeline(
         severity_counts = {label: int((severity_labels[split] == int(label)).sum()) for label in [0, 1, 2]}
         severity_summary["split_counts"][split] = {
             "fall_windows": int(len(split_fall_indices[split])),
-            "mild": severity_counts[0],
-            "moderate": severity_counts[1],
-            "severe": severity_counts[2],
+            "low": severity_counts.get(0, 0),
+            "medium": severity_counts.get(1, 0),
+            "high": severity_counts.get(2, 0),
         }
+
+    if selected_k == 3:
+        cluster_to_severity = {int(cluster_id): int(value) for cluster_id, value in cluster_to_severity.items()}
+    else:
+        cluster_to_severity = {int(cluster_id): int(value) for cluster_id, value in cluster_to_severity.items()}
 
     save_severity_artifacts(
         SeverityPipelineResult(
@@ -549,20 +991,45 @@ def run_severity_pipeline(
         output_dir=output_dir,
     )
 
+    _save_k_selection_artifacts(
+        output_dir,
+        comparison_df,
+        selected_k,
+        k_selection_meta,
+        final_model,
+        feature_scaler,
+        cluster_profile_table,
+        train_cluster_sizes,
+        train_cluster_percentages,
+        stability_summary,
+        selected_k3_statement,
+    )
+    _save_k_selection_plots(
+        output_dir,
+        comparison_df,
+        selected_k,
+        per_k_cluster_sizes,
+        feature_scaler,
+        split_fall_features["train"],
+        split_fall_features["val"],
+        split_fall_features["test"],
+        final_model,
+    )
+
     with (Path(output_dir) / "feature_scaler.pkl").open("wb") as handle:
         import pickle
-
         pickle.dump(feature_scaler, handle)
     with (Path(output_dir) / "kmeans_model.pkl").open("wb") as handle:
         import pickle
-
-        pickle.dump(kmeans_model, handle)
-    with (Path(output_dir) / "isolation_forest.pkl").open("wb") as handle:
+        pickle.dump(final_model, handle)
+    with (Path(output_dir) / "severity_kmeans_model.pkl").open("wb") as handle:
         import pickle
+        pickle.dump(final_model, handle)
+    with (Path(output_dir) / "severity_scaler.pkl").open("wb") as handle:
+        import pickle
+        pickle.dump(feature_scaler, handle)
 
-        pickle.dump(isolation_forest, handle)
-
-    return SeverityPipelineResult(
+    outcome = SeverityPipelineResult(
         severity_labels=severity_labels,
         refined_severity_labels=refined_severity_labels,
         anomaly_scores=split_anomaly_scores,
@@ -576,3 +1043,4 @@ def run_severity_pipeline(
         anomaly_by_subject=anomaly_by_subject,
         feature_names=feature_names,
     )
+    return outcome

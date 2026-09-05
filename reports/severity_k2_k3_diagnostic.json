@@ -1,0 +1,501 @@
+{
+  "executive_summary": {
+    "current_feature_count": 58,
+    "historical_feature_count": 58,
+    "feature_count_matches_58": true,
+    "current_fall_windows": 4484,
+    "current_train_fall_windows": 4484,
+    "historical_k3_reproduced": true,
+    "historical_monotonicity_reproduced": true,
+    "k2_preferred_by_live_objective_metrics": true,
+    "pipeline_feature_change_detected": true,
+    "fall_subset_changed": false
+  },
+  "current_pipeline_configuration": {
+    "source": "src/data/severity_labeling.py",
+    "processed_split": "train",
+    "fall_label_value": 1,
+    "feature_extraction_function": "extract_window_features",
+    "scaler": "StandardScaler",
+    "fit_scope": "train fall windows only",
+    "k_values_evaluated": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "random_state": 42,
+    "n_init": 20,
+    "window_shape": [
+      64,
+      6
+    ]
+  },
+  "historical_pipeline_configuration": {
+    "historical_summary_values_observed": {
+      "Mild": 6.427383127522943,
+      "Moderate": 7.282822277758568,
+      "Severe": 7.462637079268348
+    },
+    "feature_count_claimed": 58,
+    "cluster_report_path": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\severity\\reports\\cluster_feature_report.csv",
+    "selected_k": 2,
+    "legacy_documentation": "PROJECT_SUMMARY.md records a k=3 ordering and cluster values Mild < Moderate < Severe"
+  },
+  "dataset_comparison": {
+    "current_train_fall_windows": 4484,
+    "live_source": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\train.npy",
+    "current_label_distribution": {
+      "adl": 50939,
+      "fall": 4484
+    },
+    "historical_cluster_feature_report_path": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\severity\\reports\\cluster_feature_report.csv",
+    "historical_cluster_report_samples": 9
+  },
+  "feature_comparison": {
+    "current_feature_names": [
+      "acc1_x_mean",
+      "acc1_x_std",
+      "acc1_x_min",
+      "acc1_x_max",
+      "acc1_x_range",
+      "acc1_x_rms",
+      "acc1_x_peak_abs",
+      "acc1_y_mean",
+      "acc1_y_std",
+      "acc1_y_min",
+      "acc1_y_max",
+      "acc1_y_range",
+      "acc1_y_rms",
+      "acc1_y_peak_abs",
+      "acc1_z_mean",
+      "acc1_z_std",
+      "acc1_z_min",
+      "acc1_z_max",
+      "acc1_z_range",
+      "acc1_z_rms",
+      "acc1_z_peak_abs",
+      "gyro_x_mean",
+      "gyro_x_std",
+      "gyro_x_min",
+      "gyro_x_max",
+      "gyro_x_range",
+      "gyro_x_rms",
+      "gyro_x_peak_abs",
+      "gyro_y_mean",
+      "gyro_y_std",
+      "gyro_y_min",
+      "gyro_y_max",
+      "gyro_y_range",
+      "gyro_y_rms",
+      "gyro_y_peak_abs",
+      "gyro_z_mean",
+      "gyro_z_std",
+      "gyro_z_min",
+      "gyro_z_max",
+      "gyro_z_range",
+      "gyro_z_rms",
+      "gyro_z_peak_abs",
+      "acc_mag_mean",
+      "acc_mag_std",
+      "acc_mag_min",
+      "acc_mag_max",
+      "acc_mag_range",
+      "acc_mag_rms",
+      "acc_mag_peak",
+      "acc_mag_energy",
+      "gyro_mag_mean",
+      "gyro_mag_std",
+      "gyro_mag_min",
+      "gyro_mag_max",
+      "gyro_mag_range",
+      "gyro_mag_rms",
+      "gyro_mag_peak",
+      "gyro_mag_energy"
+    ],
+    "current_feature_count": 58,
+    "historical_feature_count": 58,
+    "same_58_feature_matrix": true,
+    "feature_names_match_historical": true,
+    "differences": []
+  },
+  "fall_window_comparison": {
+    "current_fall_window_count": 4484,
+    "current_subset": "train split only, labels==1",
+    "historical_subset": "legacy cluster report suggests train split fall windows with cluster order by peak acceleration",
+    "same_subset": true
+  },
+  "k2_metrics": {
+    "silhouette": 0.1773832216780351,
+    "davies_bouldin": 1.989994882819552,
+    "calinski_harabasz": 999.8136823303928,
+    "inertia": 212638.14707114766,
+    "cluster_sizes": [
+      1697,
+      2787
+    ]
+  },
+  "k3_metrics": {
+    "silhouette": 0.158481896924038,
+    "davies_bouldin": 2.1517854045901035,
+    "calinski_harabasz": 778.4105023389412,
+    "inertia": 193013.91034494084,
+    "cluster_sizes": [
+      1659,
+      1558,
+      1267
+    ]
+  },
+  "random_seed_stability": {
+    "k2": {
+      "mean_silhouette": 0.17738245927856272,
+      "std_silhouette": 9.337448437577524e-07,
+      "mean_davies_bouldin": 1.9901075474542502,
+      "std_davies_bouldin": 0.00013798543353376027,
+      "mean_calinski_harabasz": 999.813841705109,
+      "std_calinski_harabasz": 0.00019519336625600794
+    },
+    "k3": {
+      "mean_silhouette": 0.158481896924038,
+      "std_silhouette": 0.0,
+      "mean_davies_bouldin": 2.1517854045901035,
+      "std_davies_bouldin": 0.0,
+      "mean_calinski_harabasz": 778.4105023389412,
+      "std_calinski_harabasz": 0.0
+    }
+  },
+  "k2_cluster_profiles": [
+    {
+      "cluster_id": 0,
+      "count": 1697,
+      "percentage": 0.37845673505798394,
+      "peak_accel_mean": 6.396671772003174,
+      "peak_accel_median": 6.429793357849121,
+      "acc_rms_mean": 2.3373632431030273,
+      "gyro_peak_mean": 10.155057907104492,
+      "gyro_rms_mean": 3.044334888458252,
+      "jerk_mean": 0.638034462928772,
+      "energy_mean": 5.684264659881592,
+      "delta_velocity_mean": 6.461139678955078,
+      "sma_mean": 1.0295820236206055
+    },
+    {
+      "cluster_id": 1,
+      "count": 2787,
+      "percentage": 0.6215432649420161,
+      "peak_accel_mean": 7.635105609893799,
+      "peak_accel_median": 7.504839897155762,
+      "acc_rms_mean": 2.6122922897338867,
+      "gyro_peak_mean": 12.70387077331543,
+      "gyro_rms_mean": 3.7701966762542725,
+      "jerk_mean": 0.7634268403053284,
+      "energy_mean": 7.073066711425781,
+      "delta_velocity_mean": 7.080399990081787,
+      "sma_mean": 1.1352746486663818
+    }
+  ],
+  "k3_cluster_profiles": [
+    {
+      "cluster_id": 0,
+      "count": 1659,
+      "percentage": 0.3699821587867975,
+      "peak_accel_mean": 6.427382946014404,
+      "peak_accel_median": 6.442288875579834,
+      "acc_rms_mean": 2.3389902114868164,
+      "gyro_peak_mean": 10.139004707336426,
+      "gyro_rms_mean": 3.0410168170928955,
+      "jerk_mean": 0.6434576511383057,
+      "energy_mean": 5.688434600830078,
+      "delta_velocity_mean": 6.460892200469971,
+      "sma_mean": 1.0288891792297363
+    },
+    {
+      "cluster_id": 1,
+      "count": 1558,
+      "percentage": 0.3474576271186441,
+      "peak_accel_mean": 7.858683109283447,
+      "peak_accel_median": 7.683051586151123,
+      "acc_rms_mean": 2.6344101428985596,
+      "gyro_peak_mean": 12.975687026977539,
+      "gyro_rms_mean": 3.7968125343322754,
+      "jerk_mean": 0.7859616875648499,
+      "energy_mean": 7.182314872741699,
+      "delta_velocity_mean": 7.104187488555908,
+      "sma_mean": 1.1384564638137817
+    },
+    {
+      "cluster_id": 2,
+      "count": 1267,
+      "percentage": 0.28256021409455845,
+      "peak_accel_mean": 7.282822132110596,
+      "peak_accel_median": 7.175217151641846,
+      "acc_rms_mean": 2.5747182369232178,
+      "gyro_peak_mean": 12.314197540283203,
+      "gyro_rms_mean": 3.720041036605835,
+      "jerk_mean": 0.724854588508606,
+      "energy_mean": 6.891613006591797,
+      "delta_velocity_mean": 7.032899379730225,
+      "sma_mean": 1.1290992498397827
+    }
+  ],
+  "physical_monotonicity": {
+    "historical_peak_values": {
+      "Mild": 6.427383127522943,
+      "Moderate": 7.282822277758568,
+      "Severe": 7.462637079268348
+    },
+    "k3_monotonic_feature_count": 5,
+    "ordered_features": {
+      "acc_mag_peak": [
+        6.427382946014404,
+        7.282822132110596,
+        7.858683109283447
+      ],
+      "acc_rms": [
+        2.3389902114868164,
+        2.5747182369232178,
+        2.6344101428985596
+      ],
+      "jerk": [
+        0.6434576511383057,
+        0.724854588508606,
+        0.7859616875648499
+      ],
+      "energy": [
+        5.688434600830078,
+        6.891613006591797,
+        7.182314872741699
+      ],
+      "gyro_peak": [
+        10.139004707336426,
+        12.314197540283203,
+        12.975687026977539
+      ]
+    },
+    "mild_to_moderate_to_severe_supported": true
+  },
+  "artifact_inventory": [
+    {
+      "file": "anomaly_by_severity.csv",
+      "path": "data\\processed\\severity\\anomaly_by_severity.csv",
+      "mtime": 1788253291.0043492
+    },
+    {
+      "file": "anomaly_by_subject.csv",
+      "path": "data\\processed\\severity\\anomaly_by_subject.csv",
+      "mtime": 1788253291.0054295
+    },
+    {
+      "file": "anomaly_summary.csv",
+      "path": "data\\processed\\severity\\anomaly_summary.csv",
+      "mtime": 1788253291.0033326
+    },
+    {
+      "file": "cluster_statistics.csv",
+      "path": "data\\processed\\severity\\cluster_statistics.csv",
+      "mtime": 1788253291.001303
+    },
+    {
+      "file": "severity_cluster_profiles.csv",
+      "path": "data\\processed\\severity\\severity_cluster_profiles.csv",
+      "mtime": 1788253291.0105455
+    },
+    {
+      "file": "severity_cluster_sizes.csv",
+      "path": "data\\processed\\severity\\severity_cluster_sizes.csv",
+      "mtime": 1788253291.0144455
+    },
+    {
+      "file": "severity_k_comparison.csv",
+      "path": "data\\processed\\severity\\severity_k_comparison.csv",
+      "mtime": 1788253291.009437
+    },
+    {
+      "file": "severity_k_stability.csv",
+      "path": "data\\processed\\severity\\severity_k_stability.csv",
+      "mtime": 1788253291.019441
+    },
+    {
+      "file": "anomalous_feature_statistics.csv",
+      "path": "data\\processed\\severity\\reports\\anomalous_feature_statistics.csv",
+      "mtime": 1786377431.2731254
+    },
+    {
+      "file": "anomaly_by_severity_report.csv",
+      "path": "data\\processed\\severity\\reports\\anomaly_by_severity_report.csv",
+      "mtime": 1786377431.2812169
+    },
+    {
+      "file": "anomaly_by_subject_report.csv",
+      "path": "data\\processed\\severity\\reports\\anomaly_by_subject_report.csv",
+      "mtime": 1786377431.2854743
+    },
+    {
+      "file": "anomaly_summary_report.csv",
+      "path": "data\\processed\\severity\\reports\\anomaly_summary_report.csv",
+      "mtime": 1786377431.2791243
+    },
+    {
+      "file": "cluster_feature_report.csv",
+      "path": "data\\processed\\severity\\reports\\cluster_feature_report.csv",
+      "mtime": 1786376764.690348
+    },
+    {
+      "file": "post_isolation_forest_all_windows.csv",
+      "path": "data\\processed\\severity\\reports\\post_isolation_forest_all_windows.csv",
+      "mtime": 1786471330.0349526
+    },
+    {
+      "file": "post_isolation_forest_fall_windows.csv",
+      "path": "data\\processed\\severity\\reports\\post_isolation_forest_fall_windows.csv",
+      "mtime": 1786471330.064464
+    },
+    {
+      "file": "post_isolation_forest_window_summary.csv",
+      "path": "data\\processed\\severity\\reports\\post_isolation_forest_window_summary.csv",
+      "mtime": 1786471330.0874681
+    },
+    {
+      "file": "isolation_forest_config.json",
+      "path": "data\\processed\\severity\\isolation_forest_config.json",
+      "mtime": 1788253291.0064552
+    },
+    {
+      "file": "severity_mapping.json",
+      "path": "data\\processed\\severity\\severity_mapping.json",
+      "mtime": 1788253290.9952435
+    },
+    {
+      "file": "severity_model_selection.json",
+      "path": "data\\processed\\severity\\severity_model_selection.json",
+      "mtime": 1788253291.0154457
+    },
+    {
+      "file": "severity_summary.json",
+      "path": "data\\processed\\severity\\severity_summary.json",
+      "mtime": 1788253290.9962919
+    },
+    {
+      "file": "SEVERITY_ANALYSIS_SUMMARY.md",
+      "path": "data\\processed\\severity\\SEVERITY_ANALYSIS_SUMMARY.md",
+      "mtime": 1788253291.0275345
+    },
+    {
+      "file": "feature_scaler.pkl",
+      "path": "data\\processed\\severity\\feature_scaler.pkl",
+      "mtime": 1788253293.944304
+    },
+    {
+      "file": "isolation_forest.pkl",
+      "path": "data\\processed\\severity\\isolation_forest.pkl",
+      "mtime": 1786377427.02668
+    },
+    {
+      "file": "kmeans_model.pkl",
+      "path": "data\\processed\\severity\\kmeans_model.pkl",
+      "mtime": 1788253293.946298
+    },
+    {
+      "file": "severity_kmeans_model.pkl",
+      "path": "data\\processed\\severity\\severity_kmeans_model.pkl",
+      "mtime": 1788253293.9473014
+    },
+    {
+      "file": "severity_scaler.pkl",
+      "path": "data\\processed\\severity\\severity_scaler.pkl",
+      "mtime": 1788253293.9482975
+    },
+    {
+      "file": "test_anomaly_flags.npy",
+      "path": "data\\processed\\severity\\test_anomaly_flags.npy",
+      "mtime": 1788253290.9942312
+    },
+    {
+      "file": "test_anomaly_scores.npy",
+      "path": "data\\processed\\severity\\test_anomaly_scores.npy",
+      "mtime": 1788253290.9929533
+    },
+    {
+      "file": "test_refined_severity_labels.npy",
+      "path": "data\\processed\\severity\\test_refined_severity_labels.npy",
+      "mtime": 1788253290.9929533
+    },
+    {
+      "file": "test_severity_labels.npy",
+      "path": "data\\processed\\severity\\test_severity_labels.npy",
+      "mtime": 1788253290.9919405
+    },
+    {
+      "file": "train_anomaly_flags.npy",
+      "path": "data\\processed\\severity\\train_anomaly_flags.npy",
+      "mtime": 1788253290.9870684
+    },
+    {
+      "file": "train_anomaly_scores.npy",
+      "path": "data\\processed\\severity\\train_anomaly_scores.npy",
+      "mtime": 1788253290.9860585
+    },
+    {
+      "file": "train_refined_severity_labels.npy",
+      "path": "data\\processed\\severity\\train_refined_severity_labels.npy",
+      "mtime": 1788253290.9840584
+    },
+    {
+      "file": "train_severity_labels.npy",
+      "path": "data\\processed\\severity\\train_severity_labels.npy",
+      "mtime": 1788253290.9830565
+    },
+    {
+      "file": "val_anomaly_flags.npy",
+      "path": "data\\processed\\severity\\val_anomaly_flags.npy",
+      "mtime": 1788253290.9905632
+    },
+    {
+      "file": "val_anomaly_scores.npy",
+      "path": "data\\processed\\severity\\val_anomaly_scores.npy",
+      "mtime": 1788253290.9905632
+    },
+    {
+      "file": "val_refined_severity_labels.npy",
+      "path": "data\\processed\\severity\\val_refined_severity_labels.npy",
+      "mtime": 1788253290.9890568
+    },
+    {
+      "file": "val_severity_labels.npy",
+      "path": "data\\processed\\severity\\val_severity_labels.npy",
+      "mtime": 1788253290.9880724
+    },
+    {
+      "file": "test_fall_features.npy",
+      "path": "data\\processed\\severity\\clustering_features\\test_fall_features.npy",
+      "mtime": 1788253272.47886
+    },
+    {
+      "file": "test_fall_indices.npy",
+      "path": "data\\processed\\severity\\clustering_features\\test_fall_indices.npy",
+      "mtime": 1788253272.47886
+    },
+    {
+      "file": "train_fall_features.npy",
+      "path": "data\\processed\\severity\\clustering_features\\train_fall_features.npy",
+      "mtime": 1788253272.3988748
+    },
+    {
+      "file": "train_fall_indices.npy",
+      "path": "data\\processed\\severity\\clustering_features\\train_fall_indices.npy",
+      "mtime": 1788253272.3998635
+    },
+    {
+      "file": "val_fall_features.npy",
+      "path": "data\\processed\\severity\\clustering_features\\val_fall_features.npy",
+      "mtime": 1788253272.4418597
+    },
+    {
+      "file": "val_fall_indices.npy",
+      "path": "data\\processed\\severity\\clustering_features\\val_fall_indices.npy",
+      "mtime": 1788253272.4428625
+    }
+  ],
+  "diagnostic_verdict": "K=3 is reproducible but not statistically preferred; the current objective clustering metrics favor k=2.",
+  "recommendation": "KEEP K=2"
+}

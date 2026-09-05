@@ -1,0 +1,5 @@
+threshold_label,threshold,threshold_name,subject_id,recording_id,true_label,activity_code,activity_name,data_integrity_bug,activity_judgment,judgment_rationale,total_windows,num_fall_windows
+0.5,0.5,threshold_0_5,SA03,SA03:D14_SA03_R05.txt,0,D14,"Being on one’s back change to lateral position, wait a moment, and change to one’s back",False,unexpected,Lower-impact ADL pattern should be less fall-like.,12,0
+chosen,0.25,threshold_0_25,SA03,SA03:D13_SA03_R04.txt,0,D13,"Sitting a moment, lying quickly, wait a moment, and sit again",False,plausible_borderline,"Rapid, abrupt, stumbling, collapse-into-chair, or jumping motion can resemble fall dynamics.",12,0
+chosen,0.25,threshold_0_25,SA03,SA03:D14_SA03_R05.txt,0,D14,"Being on one’s back change to lateral position, wait a moment, and change to one’s back",False,unexpected,Lower-impact ADL pattern should be less fall-like.,12,0
+chosen,0.25,threshold_0_25,SA09,SA09:D13_SA09_R04.txt,0,D13,"Sitting a moment, lying quickly, wait a moment, and sit again",False,plausible_borderline,"Rapid, abrupt, stumbling, collapse-into-chair, or jumping motion can resemble fall dynamics.",12,0

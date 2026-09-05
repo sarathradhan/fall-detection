@@ -1,8 +1,7 @@
 {
   "cluster_to_severity": {
     "0": 0,
-    "2": 1,
-    "1": 2
+    "1": 1
   },
   "severity_labels": {
     "-1": "Non-applicable",

@@ -1,0 +1,29 @@
+{
+  "thresholds": {
+    "threshold_0_5": {
+      "threshold": 0.5,
+      "total_fall_recordings": 300,
+      "genuine_impact_detections": 300,
+      "genuine_impact_detection_rate": 1.0,
+      "false_trigger_only_detections": 0,
+      "false_trigger_only_rate": 0.0,
+      "fully_missed_recordings": 0,
+      "original_any_window_recording_recall": 1.0,
+      "corrected_true_impact_detection_recall": 1.0,
+      "recall_difference_corrected_minus_original": 0.0
+    },
+    "threshold_0_25": {
+      "threshold": 0.25,
+      "total_fall_recordings": 300,
+      "genuine_impact_detections": 300,
+      "genuine_impact_detection_rate": 1.0,
+      "false_trigger_only_detections": 0,
+      "false_trigger_only_rate": 0.0,
+      "fully_missed_recordings": 0,
+      "original_any_window_recording_recall": 1.0,
+      "corrected_true_impact_detection_recall": 1.0,
+      "recall_difference_corrected_minus_original": 0.0
+    }
+  },
+  "source": "recomputed with CNN-LSTM inference"
+}

@@ -1,0 +1,39 @@
+{
+  "source_path": "reused existing recording-level CSV columns",
+  "thresholds_used": {
+    "default": 0.5,
+    "chosen": 0.2
+  },
+  "thresholds": {
+    "threshold_0_5": {
+      "threshold": 0.5,
+      "total_fall_recordings": 300,
+      "genuine_impact_detections": 299,
+      "genuine_impact_detection_rate": 0.9966666666666667,
+      "false_trigger_only_detections": 0,
+      "false_trigger_only_rate": 0.0,
+      "fully_missed_recordings": 1,
+      "original_any_window_recording_recall": 0.9966666666666667,
+      "corrected_true_impact_detection_recall": 0.9966666666666667,
+      "recall_difference_corrected_minus_original": 0.0
+    },
+    "threshold_0_2": {
+      "threshold": 0.2,
+      "total_fall_recordings": 300,
+      "genuine_impact_detections": 300,
+      "genuine_impact_detection_rate": 1.0,
+      "false_trigger_only_detections": 0,
+      "false_trigger_only_rate": 0.0,
+      "fully_missed_recordings": 0,
+      "original_any_window_recording_recall": 1.0,
+      "corrected_true_impact_detection_recall": 1.0,
+      "recall_difference_corrected_minus_original": 0.0
+    }
+  },
+  "false_trigger_only_recordings": {
+    "threshold_0_5": [],
+    "threshold_0_2": []
+  },
+  "cross_check_warnings": [],
+  "interpretation": "Genuine impact detections require predicted_positive and at least one correctly predicted label-1 impact window."
+}

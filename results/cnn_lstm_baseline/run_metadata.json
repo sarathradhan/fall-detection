@@ -1,0 +1,124 @@
+{
+  "seed": 42,
+  "input_shape": [
+    64,
+    6
+  ],
+  "batch_size": 64,
+  "max_epochs": 100,
+  "learning_rate": 0.001,
+  "loss": "binary_crossentropy",
+  "optimizer": "Adam",
+  "class_weights": {
+    "0": 0.5440134278254383,
+    "1": 6.180084745762712
+  },
+  "unroll": true,
+  "lstm_layers": 1,
+  "parameter_count": 46817,
+  "cnn_baseline_parameter_count": 33729,
+  "chosen_threshold": {
+    "threshold": 0.25,
+    "precision": 0.9582798459563543,
+    "recall": 0.9953333333333333,
+    "f1": 0.9764551994767822,
+    "f2": 0.9876951574490606
+  },
+  "best_epoch": 9,
+  "epochs_completed": 19,
+  "training_time_seconds": 241.50411779998103,
+  "interrupted": false,
+  "tensorflow_version": "2.21.0",
+  "metrics": {
+    "test_threshold_0.5": {
+      "threshold": 0.5,
+      "precision": 0.9786535303776683,
+      "recall": 0.9933333333333333,
+      "f1": 0.9859387923904053,
+      "f2": 0.9903622465935527,
+      "confusion_matrix": [
+        [
+          12401,
+          26
+        ],
+        [
+          8,
+          1192
+        ]
+      ],
+      "classification_report": {
+        "ADL/background": {
+          "precision": 0.999355306632283,
+          "recall": 0.9979077814436308,
+          "f1-score": 0.9986310194878403,
+          "support": 12427.0
+        },
+        "fall": {
+          "precision": 0.9786535303776683,
+          "recall": 0.9933333333333333,
+          "f1-score": 0.9859387923904053,
+          "support": 1200.0
+        },
+        "accuracy": 0.9975049534013356,
+        "macro avg": {
+          "precision": 0.9890044185049757,
+          "recall": 0.995620557388482,
+          "f1-score": 0.9922849059391228,
+          "support": 13627.0
+        },
+        "weighted avg": {
+          "precision": 0.9975322985229752,
+          "recall": 0.9975049534013356,
+          "f1-score": 0.9975133360272898,
+          "support": 13627.0
+        }
+      }
+    },
+    "test_chosen_threshold": {
+      "threshold": 0.25,
+      "precision": 0.9708265802269044,
+      "recall": 0.9983333333333333,
+      "f1": 0.9843878389482333,
+      "f2": 0.9927079880676168,
+      "confusion_matrix": [
+        [
+          12391,
+          36
+        ],
+        [
+          2,
+          1198
+        ]
+      ],
+      "classification_report": {
+        "ADL/background": {
+          "precision": 0.999838618575002,
+          "recall": 0.9971030819988734,
+          "f1-score": 0.9984689766317486,
+          "support": 12427.0
+        },
+        "fall": {
+          "precision": 0.9708265802269044,
+          "recall": 0.9983333333333333,
+          "f1-score": 0.9843878389482333,
+          "support": 1200.0
+        },
+        "accuracy": 0.997211418507375,
+        "macro avg": {
+          "precision": 0.9853325994009532,
+          "recall": 0.9977182076661033,
+          "f1-score": 0.991428407789991,
+          "support": 13627.0
+        },
+        "weighted avg": {
+          "precision": 0.9972838048949758,
+          "recall": 0.997211418507375,
+          "f1-score": 0.9972289850547165,
+          "support": 13627.0
+        }
+      }
+    }
+  },
+  "post_training_evaluation_completed": true,
+  "post_training_evaluation_model": "C:\\Users\\drums\\Desktop\\fall detection project\\results\\cnn_lstm_baseline\\cnn_lstm_best.keras"
+}
