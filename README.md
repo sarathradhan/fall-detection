@@ -1,42 +1,40 @@
 # Fall Detection
 
-AI-powered wearable fall detection research using the [SisFall](https://www.sisfall.com/) dataset. This repository contains data loading, preprocessing, exploratory analysis, and validation tooling to produce model-ready windowed sensor arrays.
+AI-powered wearable fall-detection research using the [SisFall](https://www.sisfall.com/) dataset. The project covers raw data ingestion, preprocessing, exploratory analysis, fall-severity labeling, anomaly detection, and supervised CNN/CNN-LSTM fall-detection baselines.
 
-## Features
+The current processed dataset contains 84,123 windows of shape `(64, 6)`: 76,939 ADL/background windows and 7,184 impact-centered fall windows. Each window represents 3.2 seconds sampled at 20 Hz with six standardized IMU channels: `acc1_x`, `acc1_y`, `acc1_z`, `gyro_x`, `gyro_y`, and `gyro_z`.
 
-- SisFall dataset discovery and loading from raw text files
-- Preprocessing pipeline: filtering, downsampling, subject-based splits, normalization, sliding windows
-- EDA scripts and verification reports
-- Pytest coverage for preprocessing logic
+## Current Status
 
-## Project structure
+- Raw SisFall parsing, metadata construction, filtering, downsampling, subject-wise splitting, normalization, and sliding-window generation are implemented.
+- Fall labels are impact-centered: only windows containing the peak fall impact are labeled as fall.
+- Severity labels are generated for fall windows using unsupervised feature extraction, KMeans clustering, and Isolation Forest anomaly refinement.
+- Two supervised baselines are available: a compact 1D CNN and a compact CNN-LSTM.
+- The current recommended operating point is CNN-LSTM at threshold `0.50`, with 100% recording-level and impact-verified fall recall in the stored evaluation outputs.
 
-```
-fall-detection/
+For the full generated report, metrics, artifact inventory, and CSV samples, see [PROJECT_STATUS_REPORT.md](PROJECT_STATUS_REPORT.md).
+
+## Repository Layout
+
+```text
+.
 ├── data/
-│   ├── raw/              # Place SisFall dataset here (not tracked in git)
-│   └── processed/        # Generated .npy artifacts (not tracked; reports/plots included)
+│   ├── raw/                         # Optional location for raw SisFall files
+│   └── processed/                   # Generated arrays, reports, plots, severity outputs
+├── reports/                         # Severity comparison reports and figures
+├── results/
+│   ├── cnn_baseline/                # CNN checkpoints, metrics, plots, recording evaluation
+│   └── cnn_lstm_baseline/           # CNN-LSTM checkpoints, metrics, plots, diagnostics
+├── scripts/                         # CLI entry points for data, analysis, and model runs
 ├── src/
-│   └── data/             # Loader and preprocessing modules
-│       └── severity_labeling.py  # KMeans severity + Isolation Forest anomaly refinement
-├── scripts/              # CLI entry points for preprocessing and EDA
-│   └── run_severity_labeling.py  # Execute the severity/anomaly pipeline
-├── tests/                # Unit and integration tests
-├── notebooks/            # Exploratory notebooks
+│   └── data/                        # SisFall loader, preprocessing, severity, anomaly modules
+├── tests/                           # Pytest coverage for preprocessing and severity logic
+├── PROJECT_STATUS_REPORT.md
 ├── requirements.txt
-└── PROJECT_STATUS_REPORT.md # Complete generated project status and data guide
+└── README.md
 ```
 
 ## Setup
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/sarathradhan/fall-detection.git
-cd fall-detection
-```
-
-### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
@@ -46,19 +44,17 @@ python -m venv .venv
 
 # macOS / Linux
 source .venv/bin/activate
-```
 
-### 3. Install dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Download the SisFall dataset
+Python dependencies include NumPy, pandas, SciPy, scikit-learn, matplotlib, tqdm, pytest, and TensorFlow.
 
-Obtain the SisFall dataset from the official source and extract it into the project root:
+## Dataset
 
-```
+Download the SisFall dataset from the official source and extract it as:
+
+```text
 SisFall_dataset/
 ├── SA01/
 ├── SA02/
@@ -66,25 +62,25 @@ SisFall_dataset/
 └── ...
 ```
 
-Alternatively, place it under `data/raw/SisFall_dataset/` and update script paths as needed.
+The default preprocessing script expects `SisFall_dataset/` in the repository root. Raw dataset files are not tracked in git.
 
-## Usage
+## Pipeline
 
-### Load and inspect raw data
-
-```bash
-python scripts/load_sisfall_dataset.py
-```
-
-### Run full preprocessing
-
-Generates train/validation/test window arrays under `data/processed/`:
+Run the full preprocessing pipeline:
 
 ```bash
 python scripts/run_full_preprocessing.py
 ```
 
-### Run EDA and verification
+This generates the primary model inputs under `data/processed/`:
+
+- `train.npy`, `val.npy`, `test.npy`
+- `train_labels.npy`, `val_labels.npy`, `test_labels.npy`
+- `train_subject_ids.npy`, `val_subject_ids.npy`, `test_subject_ids.npy`
+- `train_recording_ids.npy`, `val_recording_ids.npy`, `test_recording_ids.npy`
+- `scaler.pkl`
+
+Run EDA and verification:
 
 ```bash
 python scripts/run_phase2_eda.py
@@ -92,61 +88,64 @@ python scripts/verify_preprocessing_eda_pipeline.py
 python scripts/inspect_processed_data.py
 ```
 
-### Generate fall severity labels
-
-This project can derive data-driven fall severity labels for fall windows only, using train-only K-means clustering on interpretable IMU window features.
+Generate severity labels and anomaly outputs:
 
 ```bash
 python scripts/run_severity_labeling.py
-```
-
-To generate summary plots and CSV reports from the severity/anomaly outputs:
-
-```bash
 python scripts/run_severity_anomaly_analysis.py
+python scripts/validate_severity_clusters.py
+python scripts/run_cluster_plots.py
 ```
 
-The scripts write severity artifacts to `data/processed/severity/`, including:
+Severity artifacts are written to `data/processed/severity/`, including refined severity labels, anomaly scores/flags, clustering features, KMeans/Isolation Forest models, CSV reports, and plots.
 
-- `train_severity_labels.npy`, `val_severity_labels.npy`, `test_severity_labels.npy`
-- `train_refined_severity_labels.npy`, `val_refined_severity_labels.npy`, `test_refined_severity_labels.npy`
-- `train_anomaly_scores.npy`, `val_anomaly_scores.npy`, `test_anomaly_scores.npy`
-- `train_anomaly_flags.npy`, `val_anomaly_flags.npy`, `test_anomaly_flags.npy`
-- `feature_scaler.pkl`
-- `kmeans_model.pkl`
-- `isolation_forest.pkl`
-- `isolation_forest_config.json`
-- `cluster_statistics.csv`
-- `anomaly_summary.csv`
-- `anomaly_by_severity.csv`
-- `anomaly_by_subject.csv`
-- `severity_mapping.json`
-- `severity_summary.json`
-- `feature_names.json`
-- `clustering_features/` with per-split fall-window features and fall-window indices
+## Model Training
 
-### Run tests
-
-```bash
-pytest
-```
-
-### Train the CNN baseline
-
-The standalone baseline uses the natural imbalanced training split and class weighting. It does not modify preprocessing outputs.
+Train the compact CNN baseline:
 
 ```bash
 python scripts/train_cnn_baseline.py
 ```
 
-Results are saved under `results/cnn_baseline/`.
+Train the compact CNN-LSTM baseline:
 
-## Processed data
+```bash
+python scripts/train_cnn_lstm_baseline.py
+```
 
-Large binary artifacts (`*.npy`, `*.pkl`) are excluded from git. After cloning, run the preprocessing script to regenerate them locally. Summary reports and plots under `data/processed/reports/` and `data/processed/plots/` are included for reference.
+Evaluate recording-level behavior for the CNN baseline:
 
-See [PROJECT_STATUS_REPORT.md](PROJECT_STATUS_REPORT.md) for the complete pipeline guide, artifact inventory, CSV statistics, and 10-row samples for every project CSV.
+```bash
+python scripts/evaluate_recording_level.py
+```
+
+Model outputs are saved under `results/cnn_baseline/` and `results/cnn_lstm_baseline/`.
+
+## Current Results Snapshot
+
+| Model | Threshold | Fall precision | Fall recall | Fall F1 | Fall F2 | Recording recall | Impact-verified recall |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CNN | 0.50 | 0.9761 | 0.9867 | 0.9814 | 0.9845 | 0.9967 | 0.9967 |
+| CNN | 0.20 | 0.9683 | 0.9925 | 0.9802 | 0.9876 | 1.0000 | 1.0000 |
+| CNN-LSTM | 0.50 | 0.9787 | 0.9933 | 0.9859 | 0.9904 | 1.0000 | 1.0000 |
+| CNN-LSTM | 0.25 | 0.9708 | 0.9983 | 0.9844 | 0.9927 | 1.0000 | 1.0000 |
+
+Although the validation-selected CNN-LSTM threshold is `0.25`, the project report recommends `0.50` for the current operating point because it keeps 100% recording-level and impact-verified recall while reducing ADL false-trigger recordings.
+
+## Tests
+
+```bash
+pytest
+```
+
+The latest recorded verification in the project report was 15 passing tests with one expected synthetic-clustering convergence warning.
+
+## Notes
+
+- Large generated binary artifacts such as `*.npy`, `*.pkl`, and trained model checkpoints may be excluded from git depending on local ignore rules.
+- Do not mix severity artifacts from different runs without regenerating them together; the status report notes that some stored severity files may reflect older K2/K3 comparison runs.
+- SisFall dataset usage is subject to the original dataset terms.
 
 ## License
 
-Research and educational use. SisFall dataset usage is subject to its own terms from the original publishers.
+Research and educational use.
