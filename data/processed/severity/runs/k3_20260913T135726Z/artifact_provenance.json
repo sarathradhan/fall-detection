@@ -1,0 +1,15 @@
+{
+  "run_id": "k3_20260913T135726Z",
+  "generated_at_utc": "2026-09-13T13:57:26.844299+00:00",
+  "completed_at_utc": "2026-09-13T13:58:13.283725+00:00",
+  "command": "'D:\\Fall Detection\\fall-detection\\.venv\\Scripts\\python.exe' 'D:\\Fall Detection\\fall-detection\\scripts\\run_versioned_k3_pipeline.py'",
+  "severity_command": "'D:\\Fall Detection\\fall-detection\\.venv\\Scripts\\python.exe' 'D:\\Fall Detection\\fall-detection\\scripts\\run_severity_labeling.py' --output-dir 'D:\\Fall Detection\\fall-detection\\data\\processed\\severity\\runs\\k3_20260913T135726Z' --n-clusters 3",
+  "report_export_command": "'D:\\Fall Detection\\fall-detection\\.venv\\Scripts\\python.exe' 'D:\\Fall Detection\\fall-detection\\scripts\\export_post_isolation_forest_windows.py' --severity-dir 'D:\\Fall Detection\\fall-detection\\data\\processed\\severity\\runs\\k3_20260913T135726Z' --output-dir 'D:\\Fall Detection\\fall-detection\\data\\processed\\severity\\runs\\k3_20260913T135726Z\\reports'",
+  "selected_k": 3,
+  "fit_scope": {
+    "preprocessing_scaler": "preprocessing train split only",
+    "severity_feature_scaler": "train fall windows only",
+    "kmeans": "train fall windows only",
+    "isolation_forest": "train fall windows only"
+  }
+}

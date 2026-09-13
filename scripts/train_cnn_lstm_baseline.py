@@ -6,7 +6,10 @@ import argparse
 import json
 import os
 import random
+import shlex
+import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -367,7 +370,7 @@ def main() -> None:
     default_test = evaluate_test(model, test_x, test_y, DEFAULT_THRESHOLD)
     chosen_test = evaluate_test(model, test_x, test_y, chosen["threshold"])
     save_plots(history_frame, np.asarray(default_test["confusion_matrix"]))
-    metadata = {"seed": SEED, "input_shape": list(INPUT_SHAPE), "batch_size": BATCH_SIZE, "max_epochs": MAX_EPOCHS, "learning_rate": LEARNING_RATE, "loss": "binary_crossentropy", "optimizer": "Adam", "class_weights": class_weights, "unroll": True, "lstm_layers": 1, "parameter_count": model.count_params(), "cnn_baseline_parameter_count": 33729, "chosen_threshold": chosen, "best_epoch": int(history_frame.loc[history_frame.val_loss.idxmin(), "epoch"]), "epochs_completed": len(history_frame), "training_time_seconds": training_seconds, "interrupted": interrupted, "tensorflow_version": tf.__version__, "metrics": {"test_threshold_0.5": default_test, "test_chosen_threshold": chosen_test}}
+    metadata = {"seed": SEED, "input_shape": list(INPUT_SHAPE), "batch_size": BATCH_SIZE, "max_epochs": MAX_EPOCHS, "learning_rate": LEARNING_RATE, "loss": "binary_crossentropy", "optimizer": "Adam", "class_weights": class_weights, "unroll": True, "lstm_layers": 1, "parameter_count": model.count_params(), "cnn_baseline_parameter_count": 33729, "chosen_threshold": chosen, "best_epoch": int(history_frame.loc[history_frame.val_loss.idxmin(), "epoch"]), "epochs_completed": len(history_frame), "training_time_seconds": training_seconds, "interrupted": interrupted, "tensorflow_version": tf.__version__, "metrics": {"test_threshold_0.5": default_test, "test_chosen_threshold": chosen_test}, "generated_at_utc": datetime.now(timezone.utc).isoformat(), "command": " ".join(shlex.quote(part) for part in sys.argv)}
     (RESULTS_DIR / "run_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     print("\nCNN-LSTM test classification report @ threshold 0.5:")
     print(pd.DataFrame(default_test["classification_report"]).T.to_string())

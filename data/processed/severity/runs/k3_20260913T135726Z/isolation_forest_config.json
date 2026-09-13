@@ -1,0 +1,6 @@
+{
+  "contamination": 0.02,
+  "n_estimators": 256,
+  "random_state": 42,
+  "decision_function_note": "Higher scores are more normal and lower scores are more anomalous. Anomaly flags are assigned where IsolationForest.predict == -1."
+}

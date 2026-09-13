@@ -1,0 +1,17 @@
+severity_label,severity,subject_id,severity_windows,detected_severity_windows,subject_recall,impact_verified
+-1,Uncertain (-1),SA02,15,15,1.0,True
+-1,Uncertain (-1),SA03,3,3,1.0,True
+-1,Uncertain (-1),SA09,3,2,0.6666666666666666,True
+-1,Uncertain (-1),SA14,3,3,1.0,True
+0,Mild,SA02,105,104,0.9904761904761905,True
+0,Mild,SA03,133,133,1.0,True
+0,Mild,SA09,122,120,0.9836065573770492,True
+0,Mild,SA14,86,83,0.9651162790697675,True
+1,Moderate,SA02,70,70,1.0,True
+1,Moderate,SA03,52,52,1.0,True
+1,Moderate,SA09,91,91,1.0,True
+1,Moderate,SA14,85,85,1.0,True
+2,Severe,SA02,110,108,0.9818181818181818,True
+2,Severe,SA03,112,112,1.0,True
+2,Severe,SA09,84,84,1.0,True
+2,Severe,SA14,126,126,1.0,True

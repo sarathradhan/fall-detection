@@ -156,7 +156,13 @@ The canonical post-Isolation Forest fall export contains 7,184 rows: train 4,484
 
 ### Important artifact consistency note
 
-The repository contains outputs from more than one severity-analysis run. `data/processed/severity/reports/post_isolation_forest_fall_windows.csv`, `cluster_feature_report.csv`, and the recorded project summary contain the later three-level Mild/Moderate/Severe result. Some files directly under `data/processed/severity/` such as `severity_cluster_sizes.csv`, `severity_cluster_profiles.csv`, and `anomaly_by_severity.csv` contain an older two-cluster or Low/Medium result. The historical K2/K3 diagnostics explain that K=2 had better separation scores, while K=3 was selected for the desired three-level interpretation. Do not mix these older two-cluster files with the current three-level labels; regenerate them together before using them for analysis.
+The repository contains outputs from more than one severity-analysis run. `data/processed/severity/reports/post_isolation_forest_fall_windows.csv`, `cluster_feature_report.csv`, and the recorded project summary contain the later three-level Mild/Moderate/Severe result. Some files directly under `data/processed/severity/` such as `severity_cluster_sizes.csv`, `severity_cluster_profiles.csv`, and `anomaly_by_severity.csv` contain an older two-cluster or Low/Medium result. The historical K2/K3 diagnostics explain that K=2 had better separation scores, while K=3 was selected for the desired three-level interpretation. Do not mix these older two-cluster files with the current three-level labels; regenerate them together before using them for analysis. This mismatch was resolved in versioned run `data/processed/severity/runs/k3_20260913T135813Z`, whose labels, train-fitted estimators, and downstream exports are self-contained.
+
+### Versioned K=3 evaluation
+
+The CNN-LSTM was evaluated at threshold `0.50` using refined labels from the same K=3 run. Test window counts and recall were: uncertain `-1` 24 / 95.83%, Mild 446 / 98.65%, Moderate 298 / 100.00%, and Severe 432 / 99.54%. Overall test metrics were 97.70% window precision, 99.25% window recall, 98.47% window F1, 100% fall-recording recall, and 100% impact-verified recording recall across 300 fall recordings. The regenerated model produced 0 false-triggered ADL recordings.
+
+Mean subject recall was 91.67% for uncertain, 98.48% for Mild, 100.00% for Moderate, and 99.55% for Severe. Complete window-, recording-, subject-, and impact-verified outputs are under `results/cnn_lstm_baseline/severity_eval/k3_20260913T135813Z/`. The 2-consecutive-window rule is recorded as analysis-only future mitigation; in this run it retained 100% fall-recording and impact-verified recall with 0 ADL false-trigger recordings and does not change the default operating point.
 
 ## 7. Stored Arrays and Models
 
@@ -901,12 +907,12 @@ First 10 rows:
 
 ## 9. How to Continue
 
-1. Resolve the severity artifact mismatch by rerunning the chosen K=3 pipeline and downstream report export as one versioned run.
-2. Evaluate the CNN-LSTM at threshold `0.50` separately for Mild, Moderate, Severe, and uncertain (`-1`) fall windows once the K=2/K=3 severity artifact mismatch is resolved.
-3. Consider a 2-consecutive-window alert rule as a future mitigation for single-window ADL false-trigger blips.
-4. Report window-, recording-, subject-level, and impact-verified metrics, not only window-level metrics.
-5. Keep all transformations train-only: preprocessing scaler, severity feature scaler, KMeans, and Isolation Forest.
-6. Record the exact artifact generation command and timestamp whenever processed arrays, severity outputs, or model results are regenerated.
+1. Completed: reran the chosen K=3 pipeline and downstream report export as versioned run `k3_20260913T135813Z`.
+2. Completed: evaluated CNN-LSTM threshold `0.50` separately for Mild, Moderate, Severe, and uncertain (`-1`) fall windows.
+3. Future mitigation: assess a 2-consecutive-window alert rule for single-window ADL false-trigger blips; current analysis is non-operational.
+4. Completed: reported window-, recording-, subject-level, and impact-verified metrics in the versioned evaluation outputs.
+5. Verified: preprocessing scaler is train-only; severity feature scaler, KMeans, and Isolation Forest are fit on train fall windows only.
+6. Completed for the versioned severity/export/evaluation artifacts; exact commands and UTC timestamps are recorded in `artifact_provenance.json` and the evaluation summary.
 
 ## 10. Key Files
 

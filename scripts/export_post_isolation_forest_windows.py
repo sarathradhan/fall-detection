@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import pickle
+import argparse
+import shlex
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -120,6 +123,14 @@ def export_split(split: str, scaler: object, kmeans: object, cluster_to_severity
 
 
 def main() -> None:
+    global SEVERITY_DIR, CLUSTER_FEATURES_DIR, OUTPUT_DIR
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--severity-dir", type=Path, default=SEVERITY_DIR)
+    parser.add_argument("--output-dir", type=Path, default=None)
+    args = parser.parse_args()
+    SEVERITY_DIR = args.severity_dir.resolve()
+    CLUSTER_FEATURES_DIR = SEVERITY_DIR / "clustering_features"
+    OUTPUT_DIR = (args.output_dir or SEVERITY_DIR / "reports").resolve()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     scaler, kmeans, cluster_to_severity = load_models()
 
@@ -146,6 +157,14 @@ def main() -> None:
     )
     summary_path = OUTPUT_DIR / "post_isolation_forest_window_summary.csv"
     summary.to_csv(summary_path, index=False)
+    provenance = {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "command": " ".join(shlex.quote(part) for part in __import__("sys").argv),
+        "severity_dir": str(SEVERITY_DIR),
+        "output_dir": str(OUTPUT_DIR),
+        "source_artifacts": "same versioned severity directory for scaler, KMeans, labels, features, and anomaly outputs",
+    }
+    (OUTPUT_DIR / "artifact_provenance.json").write_text(json.dumps(provenance, indent=2), encoding="utf-8")
 
     print(f"Saved all-window listing: {all_windows_path}")
     print(f"Saved fall-window listing: {fall_windows_path}")

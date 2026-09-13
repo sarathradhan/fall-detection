@@ -780,7 +780,7 @@ def run_severity_pipeline(
             _validate_feature_matrix(features, name=f"{split}_fall_features")
             split_fall_features[split] = features
             split_fall_indices[split] = fall_indices
-            save_clustering_features(split, features, fall_indices)
+            save_clustering_features(split, features, fall_indices, path=Path(output_dir) / "clustering_features")
 
         split_data[split] = {
             "windows": windows,
@@ -841,6 +841,12 @@ def run_severity_pipeline(
     selected_k3_statement = f"{k3_statement}. {k3_support_reason}"
     stability_summary = _compute_stability_summary(per_k_metric_runs)
 
+    isolation_forest = fit_isolation_forest(
+        train_scaled,
+        contamination=ANOMALY_CONTAMINATION,
+        random_state=random_state,
+        n_estimators=ANOMALY_N_ESTIMATORS,
+    )
     split_cluster_ids: dict[str, np.ndarray] = {}
     split_anomaly_scores: dict[str, np.ndarray] = {}
     split_anomaly_flags: dict[str, np.ndarray] = {}
@@ -853,24 +859,8 @@ def run_severity_pipeline(
         else:
             scaled = feature_scaler.transform(split_fall_features[split])
             split_cluster_ids[split] = final_model.predict(scaled)
-            split_anomaly_scores[split] = compute_anomaly_scores(
-                fit_isolation_forest(
-                    train_scaled,
-                    contamination=ANOMALY_CONTAMINATION,
-                    random_state=random_state,
-                    n_estimators=ANOMALY_N_ESTIMATORS,
-                ),
-                scaled,
-            )
-            split_anomaly_flags[split] = compute_anomaly_flags(
-                fit_isolation_forest(
-                    train_scaled,
-                    contamination=ANOMALY_CONTAMINATION,
-                    random_state=random_state,
-                    n_estimators=ANOMALY_N_ESTIMATORS,
-                ),
-                scaled,
-            )
+            split_anomaly_scores[split] = compute_anomaly_scores(isolation_forest, scaled)
+            split_anomaly_flags[split] = compute_anomaly_flags(isolation_forest, scaled)
 
     cluster_stats = compute_cluster_statistics(split_cluster_ids, split_fall_features, feature_names)
     cluster_stats["severity_label"] = cluster_stats["cluster_id"].map(cluster_to_severity)
@@ -909,7 +899,7 @@ def run_severity_pipeline(
         )
 
         fall_severity_labels = severity_labels[split][split_fall_indices[split]]
-        for severity_label, severity_name in [(0, "Low"), (1, "Medium"), (2, "High")]:
+        for severity_label, severity_name in [(0, "Mild"), (1, "Moderate"), (2, "Severe")]:
             severity_fall_mask = fall_severity_labels == severity_label
             severity_count = int(severity_fall_mask.sum())
             if severity_count == 0:

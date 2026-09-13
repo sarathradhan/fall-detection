@@ -1,0 +1,26 @@
+{
+  "run_id": "k3_20260913T135813Z",
+  "generated_at_utc": "2026-09-13T13:58:13.566997+00:00",
+  "completed_at_utc": "2026-09-13T13:58:56.052038+00:00",
+  "command": "'D:\\Fall Detection\\fall-detection\\.venv\\Scripts\\python.exe' 'D:\\Fall Detection\\fall-detection\\scripts\\run_versioned_k3_pipeline.py'",
+  "severity_command": "'D:\\Fall Detection\\fall-detection\\.venv\\Scripts\\python.exe' 'D:\\Fall Detection\\fall-detection\\scripts\\run_severity_labeling.py' --output-dir 'D:\\Fall Detection\\fall-detection\\data\\processed\\severity\\runs\\k3_20260913T135813Z' --n-clusters 3",
+  "report_export_command": "'D:\\Fall Detection\\fall-detection\\.venv\\Scripts\\python.exe' 'D:\\Fall Detection\\fall-detection\\scripts\\export_post_isolation_forest_windows.py' --severity-dir 'D:\\Fall Detection\\fall-detection\\data\\processed\\severity\\runs\\k3_20260913T135813Z' --output-dir 'D:\\Fall Detection\\fall-detection\\data\\processed\\severity\\runs\\k3_20260913T135813Z\\reports'",
+  "selected_k": 3,
+  "canonical_artifacts": "data/processed/severity",
+  "gyro_audit": {
+    "source": "data/processed/GYRO_OUTLIER_BY_ACTIVITY.md",
+    "status": "reviewed_existing_report; not rerun",
+    "finding": "ADL gyro tail is concentrated in D05 and D17 maximum values; no relabeling change was made."
+  },
+  "uncertain_window_policy": {
+    "isolation_forest_flag": -1,
+    "policy": "abstain_from_severity_training_and_evaluation; retain original cluster label separately",
+    "reason": "Isolation Forest marks unusual fall windows as uncertain, not as a clinical severity class."
+  },
+  "fit_scope": {
+    "preprocessing_scaler": "preprocessing train split only",
+    "severity_feature_scaler": "train fall windows only",
+    "kmeans": "train fall windows only",
+    "isolation_forest": "train fall windows only"
+  }
+}

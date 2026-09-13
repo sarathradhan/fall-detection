@@ -1,4 +1,4 @@
 level,threshold_0_5_recall,chosen_threshold_recall
-window,0.9933333333333333,0.9983333333333333
+window,0.9925,0.995
 recording,1.0,1.0
 subject,1.0,1.0

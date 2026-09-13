@@ -19,106 +19,104 @@
   "cnn_baseline_parameter_count": 33729,
   "chosen_threshold": {
     "threshold": 0.25,
-    "precision": 0.9582798459563543,
-    "recall": 0.9953333333333333,
-    "f1": 0.9764551994767822,
-    "f2": 0.9876951574490606
+    "precision": 0.9538757206918642,
+    "recall": 0.9926666666666667,
+    "f1": 0.9728846782097353,
+    "f2": 0.9846581140060838
   },
-  "best_epoch": 9,
-  "epochs_completed": 19,
-  "training_time_seconds": 241.50411779998103,
+  "best_epoch": 4,
+  "epochs_completed": 14,
+  "training_time_seconds": 466.1173703999957,
   "interrupted": false,
   "tensorflow_version": "2.21.0",
   "metrics": {
     "test_threshold_0.5": {
       "threshold": 0.5,
-      "precision": 0.9786535303776683,
-      "recall": 0.9933333333333333,
-      "f1": 0.9859387923904053,
-      "f2": 0.9903622465935527,
+      "precision": 0.9770303527481542,
+      "recall": 0.9925,
+      "f1": 0.9847044233154196,
+      "f2": 0.989367004485795,
       "confusion_matrix": [
         [
-          12401,
-          26
+          12399,
+          28
         ],
         [
-          8,
-          1192
+          9,
+          1191
         ]
       ],
       "classification_report": {
         "ADL/background": {
-          "precision": 0.999355306632283,
-          "recall": 0.9979077814436308,
-          "f1-score": 0.9986310194878403,
+          "precision": 0.999274661508704,
+          "recall": 0.9977468415546793,
+          "f1-score": 0.998510167102879,
           "support": 12427.0
         },
         "fall": {
-          "precision": 0.9786535303776683,
-          "recall": 0.9933333333333333,
-          "f1-score": 0.9859387923904053,
+          "precision": 0.9770303527481542,
+          "recall": 0.9925,
+          "f1-score": 0.9847044233154196,
           "support": 1200.0
         },
-        "accuracy": 0.9975049534013356,
+        "accuracy": 0.9972848022308652,
         "macro avg": {
-          "precision": 0.9890044185049757,
-          "recall": 0.995620557388482,
-          "f1-score": 0.9922849059391228,
+          "precision": 0.9881525071284292,
+          "recall": 0.9951234207773396,
+          "f1-score": 0.9916072952091493,
           "support": 13627.0
         },
         "weighted avg": {
-          "precision": 0.9975322985229752,
-          "recall": 0.9975049534013356,
-          "f1-score": 0.9975133360272898,
+          "precision": 0.9973158172647282,
+          "recall": 0.9972848022308652,
+          "f1-score": 0.9972944268412696,
           "support": 13627.0
         }
       }
     },
     "test_chosen_threshold": {
       "threshold": 0.25,
-      "precision": 0.9708265802269044,
-      "recall": 0.9983333333333333,
-      "f1": 0.9843878389482333,
-      "f2": 0.9927079880676168,
+      "precision": 0.9605792437650845,
+      "recall": 0.995,
+      "f1": 0.9774866966844045,
+      "f2": 0.9879199073307959,
       "confusion_matrix": [
         [
-          12391,
-          36
+          12378,
+          49
         ],
         [
-          2,
-          1198
+          6,
+          1194
         ]
       ],
       "classification_report": {
         "ADL/background": {
-          "precision": 0.999838618575002,
-          "recall": 0.9971030819988734,
-          "f1-score": 0.9984689766317486,
+          "precision": 0.999515503875969,
+          "recall": 0.9960569727206888,
+          "f1-score": 0.9977832413042602,
           "support": 12427.0
         },
         "fall": {
-          "precision": 0.9708265802269044,
-          "recall": 0.9983333333333333,
-          "f1-score": 0.9843878389482333,
+          "precision": 0.9605792437650845,
+          "recall": 0.995,
+          "f1-score": 0.9774866966844045,
           "support": 1200.0
         },
-        "accuracy": 0.997211418507375,
+        "accuracy": 0.9959638952080428,
         "macro avg": {
-          "precision": 0.9853325994009532,
-          "recall": 0.9977182076661033,
-          "f1-score": 0.991428407789991,
+          "precision": 0.9800473738205268,
+          "recall": 0.9955284863603444,
+          "f1-score": 0.9876349689943323,
           "support": 13627.0
         },
         "weighted avg": {
-          "precision": 0.9972838048949758,
-          "recall": 0.997211418507375,
-          "f1-score": 0.9972289850547165,
+          "precision": 0.9960867585811086,
+          "recall": 0.9959638952080428,
+          "f1-score": 0.9959959180824339,
           "support": 13627.0
         }
       }
     }
-  },
-  "post_training_evaluation_completed": true,
-  "post_training_evaluation_model": "C:\\Users\\drums\\Desktop\\fall detection project\\results\\cnn_lstm_baseline\\cnn_lstm_best.keras"
+  }
 }

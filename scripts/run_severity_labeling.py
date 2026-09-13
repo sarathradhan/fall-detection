@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import argparse
 from pathlib import Path
 
 repo_root = Path(__file__).resolve().parents[1]
@@ -9,10 +10,14 @@ sys.path.insert(0, str(repo_root / "src"))
 from src.data.severity_labeling import run_severity_pipeline
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", type=Path, default=Path("data") / "processed" / "severity")
+    parser.add_argument("--n-clusters", type=int, default=None)
+    args = parser.parse_args()
     result = run_severity_pipeline(
         processed_dir=Path("data") / "processed",
-        output_dir=Path("data") / "processed" / "severity",
-        n_clusters=None,
+        output_dir=args.output_dir,
+        n_clusters=args.n_clusters,
         random_state=42,
         n_init=20,
         k_values=[2, 3, 4, 5],

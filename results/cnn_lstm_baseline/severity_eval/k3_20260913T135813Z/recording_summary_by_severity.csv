@@ -1,0 +1,5 @@
+severity_label,severity,recordings,detected_recordings,impact_verified_recordings,two_consecutive_recordings
+-1,Uncertain (-1),13,12,12,4
+0,Mild,121,121,121,112
+1,Moderate,79,79,79,76
+2,Severe,111,111,111,109

@@ -4,8 +4,8 @@
     "chosen": 0.25
   },
   "window_level_recall": {
-    "threshold_0_5": 0.9933333333333333,
-    "threshold_0_25": 0.9983333333333333
+    "threshold_0_5": 0.9925,
+    "threshold_0_25": 0.995
   },
   "recording_level": {
     "threshold_0_5": {
@@ -16,8 +16,8 @@
       "fall_recordings_fully_missed": 0,
       "fall_recordings_at_least_partially_detected": 300,
       "recording_level_recall": 1.0,
-      "adl_recordings_falsely_triggered": 1,
-      "recording_level_false_positive_rate": 0.002304147465437788
+      "adl_recordings_falsely_triggered": 0,
+      "recording_level_false_positive_rate": 0.0
     },
     "threshold_0_25": {
       "threshold": 0.25,
@@ -27,8 +27,8 @@
       "fall_recordings_fully_missed": 0,
       "fall_recordings_at_least_partially_detected": 300,
       "recording_level_recall": 1.0,
-      "adl_recordings_falsely_triggered": 3,
-      "recording_level_false_positive_rate": 0.0069124423963133645
+      "adl_recordings_falsely_triggered": 0,
+      "recording_level_false_positive_rate": 0.0
     }
   },
   "subject_level": {
