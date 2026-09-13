@@ -1,6 +1,8 @@
 # Fall Detection Project: Complete Status and Data Guide
 
-> Generated from the files currently present in the repository on 2026-09-05. This is the consolidated project report; older generated Markdown reports were removed to avoid conflicting summaries.
+> Generated from the files currently present in the repository on 2026-09-13. This is the consolidated project report; older generated Markdown reports were removed to avoid conflicting summaries.
+
+> Latest update: severity anomaly summaries now handle empty severity groups explicitly, reporting zero windows and a zero anomaly rate instead of attempting division by zero.
 
 ## 1. Executive Summary
 
