@@ -1,0 +1,4 @@
+severity_label,severity,subjects,mean_subject_recall,min_subject_recall,impact_verified_subjects
+-1,Uncertain (-1),4,0.9166666666666666,0.6666666666666666,4
+0,Mild,4,0.9858616639538325,0.96875,4
+1,Severe,4,0.9971590909090909,0.9886363636363636,4

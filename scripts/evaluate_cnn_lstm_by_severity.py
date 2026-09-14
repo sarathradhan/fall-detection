@@ -20,6 +20,20 @@ THRESHOLD = 0.50
 SEVERITY_NAMES = {-1: "Uncertain (-1)", 0: "Mild", 1: "Moderate", 2: "Severe"}
 
 
+def load_severity_names(severity_dir: Path) -> dict[int, str]:
+    summary_path = severity_dir / "severity_summary.json"
+    if not summary_path.exists():
+        return dict(SEVERITY_NAMES)
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    names = summary.get("severity_names")
+    if not isinstance(names, dict):
+        return dict(SEVERITY_NAMES)
+    parsed = {int(label): str(name) for label, name in names.items()}
+    if -1 in parsed:
+        parsed[-1] = "Uncertain (-1)"
+    return parsed
+
+
 def evaluate(severity_dir: Path, output_dir: Path) -> None:
     arrays = {name: np.load(DATA_DIR / name, allow_pickle=True) for name in ["test.npy", "test_labels.npy", "test_recording_ids.npy", "test_subject_ids.npy"]}
     refined = np.load(severity_dir / "test_refined_severity_labels.npy")
@@ -39,6 +53,8 @@ def evaluate(severity_dir: Path, output_dir: Path) -> None:
     labels = arrays["test_labels.npy"].astype(int)
     recording_ids = arrays["test_recording_ids.npy"].astype(str)
     subject_ids = arrays["test_subject_ids.npy"].astype(str)
+    severity_names = load_severity_names(severity_dir)
+    present_severities = [-1, *sorted(label for label in severity_names if label >= 0)]
     rows: list[dict[str, Any]] = []
     recording_rows: list[dict[str, Any]] = []
     subject_rows: list[dict[str, Any]] = []
@@ -88,7 +104,8 @@ def evaluate(severity_dir: Path, output_dir: Path) -> None:
             "adl_false_trigger_rate": false_positive / len(adl) if len(adl) else 0.0,
         }
 
-    for severity, severity_name in SEVERITY_NAMES.items():
+    for severity in present_severities:
+        severity_name = severity_names[severity]
         group = (labels == 1) & (refined == severity)
         detected = int(np.sum(predictions[group]))
         total = int(np.sum(group))

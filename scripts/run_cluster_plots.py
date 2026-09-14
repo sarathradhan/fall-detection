@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pickle
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -20,6 +21,18 @@ SPLITS = ["train", "val", "test"]
 
 CLUSTER_COLORS = {0: "#4C72B0", 1: "#DD8452", 2: "#55A868"}
 SEVERITY_NAMES = {0: "Mild", 1: "Moderate", 2: "Severe"}
+
+
+def _load_severity_names() -> dict[int, str]:
+    summary_path = SEVERITY_DIR / "severity_summary.json"
+    if not summary_path.exists():
+        return dict(SEVERITY_NAMES)
+    with summary_path.open(encoding="utf-8") as handle:
+        summary = json.load(handle)
+    names = summary.get("severity_names")
+    if not isinstance(names, dict):
+        return dict(SEVERITY_NAMES)
+    return {int(label): str(name) for label, name in names.items() if int(label) >= 0}
 
 
 def _load_cluster_assignments() -> tuple[dict[str, np.ndarray], dict[str, np.ndarray], list[str], dict[int, int]]:
@@ -349,6 +362,17 @@ def export_cluster_report(
 
 
 def main() -> None:
+    global SEVERITY_DIR, CLUSTER_FEATURES_DIR, PLOTS_DIR, REPORTS_DIR, SEVERITY_NAMES
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--severity-dir", type=Path, default=SEVERITY_DIR)
+    args = parser.parse_args()
+
+    SEVERITY_DIR = args.severity_dir.resolve()
+    CLUSTER_FEATURES_DIR = SEVERITY_DIR / "clustering_features"
+    PLOTS_DIR = SEVERITY_DIR / "plots" / "clusters"
+    REPORTS_DIR = SEVERITY_DIR / "reports"
+    SEVERITY_NAMES = _load_severity_names()
+
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 

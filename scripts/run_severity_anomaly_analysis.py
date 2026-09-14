@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+import json
 from pathlib import Path
 
 import matplotlib
@@ -12,10 +14,20 @@ ROOT = Path(__file__).resolve().parents[1]
 SEVERITY_DIR = ROOT / "data" / "processed" / "severity"
 PLOTS_DIR = SEVERITY_DIR / "plots"
 REPORTS_DIR = SEVERITY_DIR / "reports"
-PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SPLITS = ["train", "val", "test"]
+
+
+def _severity_order() -> list[str]:
+    summary_path = SEVERITY_DIR / "severity_summary.json"
+    if not summary_path.exists():
+        return ["Mild", "Moderate", "Severe"]
+    with summary_path.open(encoding="utf-8") as handle:
+        summary = json.load(handle)
+    names = summary.get("severity_names")
+    if not isinstance(names, dict):
+        return ["Mild", "Moderate", "Severe"]
+    return [name for label, name in sorted(((int(k), str(v)) for k, v in names.items())) if label >= 0]
 
 
 def _load_npy(name: str) -> np.ndarray:
@@ -64,7 +76,7 @@ def plot_anomaly_score_distribution() -> None:
 
 def plot_anomaly_rate_by_severity() -> None:
     df = _load_csv("anomaly_by_severity.csv")
-    severity_order = ["Mild", "Moderate", "Severe"]
+    severity_order = _severity_order()
     fig, ax = plt.subplots(figsize=(10, 5))
     width = 0.25
     x = np.arange(len(severity_order))
@@ -156,6 +168,17 @@ def report_csv_summary() -> None:
 
 
 def main() -> None:
+    global SEVERITY_DIR, PLOTS_DIR, REPORTS_DIR
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--severity-dir", type=Path, default=SEVERITY_DIR)
+    args = parser.parse_args()
+
+    SEVERITY_DIR = args.severity_dir.resolve()
+    PLOTS_DIR = SEVERITY_DIR / "plots"
+    REPORTS_DIR = SEVERITY_DIR / "reports"
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
     print(f"Loading severity artifacts from {SEVERITY_DIR}")
     plot_anomaly_score_distribution()
     plot_anomaly_rate_by_severity()

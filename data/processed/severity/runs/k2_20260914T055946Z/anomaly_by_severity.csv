@@ -1,0 +1,7 @@
+split,severity_label,severity_name,fall_windows,anomalous_windows,anomaly_rate
+train,0,Mild,1697,43,0.025338833235120803
+train,1,Severe,2787,47,0.01686401148188016
+val,0,Mild,563,5,0.008880994671403197
+val,1,Severe,937,18,0.0192102454642476
+test,0,Mild,468,11,0.023504273504273504
+test,1,Severe,732,13,0.017759562841530054

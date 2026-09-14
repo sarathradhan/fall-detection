@@ -216,6 +216,16 @@ def map_clusters_to_severity(cluster_stats: pd.DataFrame) -> dict[int, int]:
     return mapping
 
 
+def severity_label_names(n_clusters: int) -> dict[int, str]:
+    if n_clusters == 2:
+        return {-1: "Non-applicable", 0: "Mild", 1: "Severe"}
+    if n_clusters == 3:
+        return dict(SEVERITY_LABELS)
+    names = {-1: "Non-applicable"}
+    names.update({idx: f"Severity {idx}" for idx in range(n_clusters)})
+    return names
+
+
 def assign_severity_labels(
     labels: np.ndarray,
     fall_indices: np.ndarray,
@@ -862,9 +872,11 @@ def run_severity_pipeline(
             split_anomaly_scores[split] = compute_anomaly_scores(isolation_forest, scaled)
             split_anomaly_flags[split] = compute_anomaly_flags(isolation_forest, scaled)
 
+    active_severity_names = severity_label_names(selected_k)
+
     cluster_stats = compute_cluster_statistics(split_cluster_ids, split_fall_features, feature_names)
     cluster_stats["severity_label"] = cluster_stats["cluster_id"].map(cluster_to_severity)
-    cluster_stats["severity_name"] = cluster_stats["severity_label"].map({value: name for value, name in SEVERITY_LABELS.items()})
+    cluster_stats["severity_name"] = cluster_stats["severity_label"].map(active_severity_names)
     cluster_stats = cluster_stats.sort_values(by=["severity_label", "cluster_id"]).reset_index(drop=True)
 
     severity_labels: dict[str, np.ndarray] = {}
@@ -899,7 +911,8 @@ def run_severity_pipeline(
         )
 
         fall_severity_labels = severity_labels[split][split_fall_indices[split]]
-        for severity_label, severity_name in [(0, "Mild"), (1, "Moderate"), (2, "Severe")]:
+        for severity_label in range(selected_k):
+            severity_name = active_severity_names[severity_label]
             severity_fall_mask = fall_severity_labels == severity_label
             severity_count = int(severity_fall_mask.sum())
             if severity_count == 0:
@@ -944,18 +957,20 @@ def run_severity_pipeline(
         "selection_rule": k_selection_meta["rule"],
         "k3_statement": selected_k3_statement,
         "cluster_to_severity": {str(cluster_id): idx for cluster_id, idx in cluster_to_severity.items()},
+        "severity_names": {str(label): name for label, name in active_severity_names.items()},
         "split_counts": {},
         "anomaly_contamination": ANOMALY_CONTAMINATION,
         "anomaly_n_estimators": ANOMALY_N_ESTIMATORS,
         "anomaly_note": "Anomaly scores from Isolation Forest are decision_function outputs; larger values mean more normal samples. anomaly_flag == 1 denotes suspicious fall windows. Refined severity sets anomalous fall windows to -1 (uncertain).",
     }
     for split in ["train", "val", "test"]:
-        severity_counts = {label: int((severity_labels[split] == int(label)).sum()) for label in [0, 1, 2]}
+        severity_counts = {
+            active_severity_names[label].lower(): int((severity_labels[split] == label).sum())
+            for label in range(selected_k)
+        }
         severity_summary["split_counts"][split] = {
             "fall_windows": int(len(split_fall_indices[split])),
-            "low": severity_counts.get(0, 0),
-            "medium": severity_counts.get(1, 0),
-            "high": severity_counts.get(2, 0),
+            **severity_counts,
         }
 
     if selected_k == 3:

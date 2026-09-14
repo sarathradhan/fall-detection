@@ -1,0 +1,23 @@
+{
+  "selected_k": 2,
+  "selection_rule": "Selected the simplest K within a near-tie of the best silhouette, while also keeping Davies-Bouldin and Calinski-Harabasz close to their best values and requiring each cluster to remain above a minimum cluster share threshold.",
+  "best_silhouette": 0.17738245927856272,
+  "best_davies_bouldin": 1.8706816951172307,
+  "best_calinski_harabasz": 999.813841705109,
+  "k3_statement": "k=3 is not supported. k=3 was not selected because the clustering metrics and cluster profiles did not show a clearly defensible three-level low/medium/high progression, or the cluster-size distribution was too imbalanced for a stable three-class severity map.",
+  "tested_k_values": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "selected_cluster_sizes": [
+    1697,
+    2787
+  ],
+  "selected_cluster_percentages": [
+    0.37845673505798394,
+    0.6215432649420161
+  ],
+  "recommendation": "If the selected k is not 3, the downstream CNN-LSTM severity head must be adjusted to match the final class count before training."
+}
