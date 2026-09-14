@@ -36,17 +36,34 @@ def load_json(path: Path) -> dict:
         return json.load(handle)
 
 
-def load_models() -> tuple[object, object, dict[int, int]]:
+def load_severity_names() -> dict[int, str]:
+    summary_path = SEVERITY_DIR / "severity_summary.json"
+    if not summary_path.exists():
+        return dict(SEVERITY_NAMES)
+    summary = load_json(summary_path)
+    names = summary.get("severity_names")
+    if not isinstance(names, dict):
+        return dict(SEVERITY_NAMES)
+    return {int(label): str(name) for label, name in names.items()}
+
+
+def load_models() -> tuple[object, object, dict[int, int], dict[int, str]]:
     with (SEVERITY_DIR / "feature_scaler.pkl").open("rb") as handle:
         scaler = pickle.load(handle)
     with (SEVERITY_DIR / "kmeans_model.pkl").open("rb") as handle:
         kmeans = pickle.load(handle)
     mapping = load_json(SEVERITY_DIR / "severity_mapping.json")
     cluster_to_severity = {int(key): int(value) for key, value in mapping["cluster_to_severity"].items()}
-    return scaler, kmeans, cluster_to_severity
+    return scaler, kmeans, cluster_to_severity, load_severity_names()
 
 
-def export_split(split: str, scaler: object, kmeans: object, cluster_to_severity: dict[int, int]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def export_split(
+    split: str,
+    scaler: object,
+    kmeans: object,
+    cluster_to_severity: dict[int, int],
+    severity_names: dict[int, str],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     labels = np.load(PROCESSED_DIR / f"{split}_labels.npy")
     subject_ids = np.load(PROCESSED_DIR / f"{split}_subject_ids.npy", allow_pickle=True)
     recording_ids = np.load(PROCESSED_DIR / f"{split}_recording_ids.npy", allow_pickle=True)
@@ -83,12 +100,12 @@ def export_split(split: str, scaler: object, kmeans: object, cluster_to_severity
             "cluster_id": cluster_id,
             "cluster_mapped_severity_label": int(cluster_to_severity[cluster_id]),
             "severity_label": severity_label,
-            "severity_class": SEVERITY_NAMES[severity_label],
+            "severity_class": severity_names[severity_label],
             "anomaly_score": float(anomaly_scores[fall_order]),
             "anomaly_flag": anomaly_flag,
             "anomaly_marking": "Anomalous" if anomaly_flag == 1 else "Normal",
             "refined_severity_label": refined_label,
-            "refined_severity_class": SEVERITY_NAMES[refined_label],
+            "refined_severity_class": severity_names[refined_label],
         }
         fall_lookup[int(window_index)] = row
         fall_rows.append(row)
@@ -110,12 +127,12 @@ def export_split(split: str, scaler: object, kmeans: object, cluster_to_severity
                 "fall_window_order": None if fall_info is None else fall_info["fall_window_order"],
                 "cluster_id": None if fall_info is None else fall_info["cluster_id"],
                 "severity_label": severity_label,
-                "severity_class": SEVERITY_NAMES[severity_label],
+                "severity_class": severity_names[severity_label],
                 "anomaly_score": None if fall_info is None else fall_info["anomaly_score"],
                 "anomaly_flag": None if fall_info is None else fall_info["anomaly_flag"],
                 "anomaly_marking": "Not evaluated" if fall_info is None else fall_info["anomaly_marking"],
                 "refined_severity_label": refined_label,
-                "refined_severity_class": SEVERITY_NAMES[refined_label],
+                "refined_severity_class": severity_names[refined_label],
             }
         )
 
@@ -132,12 +149,12 @@ def main() -> None:
     CLUSTER_FEATURES_DIR = SEVERITY_DIR / "clustering_features"
     OUTPUT_DIR = (args.output_dir or SEVERITY_DIR / "reports").resolve()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    scaler, kmeans, cluster_to_severity = load_models()
+    scaler, kmeans, cluster_to_severity, severity_names = load_models()
 
     all_window_tables = []
     fall_window_tables = []
     for split in SPLITS:
-        all_windows, fall_windows = export_split(split, scaler, kmeans, cluster_to_severity)
+        all_windows, fall_windows = export_split(split, scaler, kmeans, cluster_to_severity, severity_names)
         all_window_tables.append(all_windows)
         fall_window_tables.append(fall_windows)
 

@@ -1,0 +1,7 @@
+{
+  "generated_at_utc": "2026-09-14T06:00:34.092871+00:00",
+  "command": "'scripts\\export_post_isolation_forest_windows.py' --severity-dir 'data\\processed\\severity\\runs\\k2_20260914T055946Z' --output-dir 'data\\processed\\severity\\runs\\k2_20260914T055946Z\\reports'",
+  "severity_dir": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\severity\\runs\\k2_20260914T055946Z",
+  "output_dir": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\severity\\runs\\k2_20260914T055946Z\\reports",
+  "source_artifacts": "same versioned severity directory for scaler, KMeans, labels, features, and anomaly outputs"
+}

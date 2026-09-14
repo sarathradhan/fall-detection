@@ -1,0 +1,40 @@
+{
+  "tested_k_values": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "selected_k": 2,
+  "selection_rule": "Selected the simplest K within a near-tie of the best silhouette, while also keeping Davies-Bouldin and Calinski-Harabasz close to their best values and requiring each cluster to remain above a minimum cluster share threshold.",
+  "k3_statement": "k=3 is not supported. k=3 was not selected because the clustering metrics and cluster profiles did not show a clearly defensible three-level low/medium/high progression, or the cluster-size distribution was too imbalanced for a stable three-class severity map.",
+  "cluster_to_severity": {
+    "0": 0,
+    "1": 1
+  },
+  "severity_names": {
+    "-1": "Non-applicable",
+    "0": "Mild",
+    "1": "Severe"
+  },
+  "split_counts": {
+    "train": {
+      "fall_windows": 4484,
+      "mild": 1697,
+      "severe": 2787
+    },
+    "val": {
+      "fall_windows": 1500,
+      "mild": 563,
+      "severe": 937
+    },
+    "test": {
+      "fall_windows": 1200,
+      "mild": 468,
+      "severe": 732
+    }
+  },
+  "anomaly_contamination": 0.02,
+  "anomaly_n_estimators": 256,
+  "anomaly_note": "Anomaly scores from Isolation Forest are decision_function outputs; larger values mean more normal samples. anomaly_flag == 1 denotes suspicious fall windows. Refined severity sets anomalous fall windows to -1 (uncertain)."
+}

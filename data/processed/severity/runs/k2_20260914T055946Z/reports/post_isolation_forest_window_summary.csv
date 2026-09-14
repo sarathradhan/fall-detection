@@ -1,0 +1,13 @@
+split,severity_class,anomaly_marking,window_count
+test,Mild,Anomalous,11
+test,Mild,Normal,457
+test,Severe,Anomalous,13
+test,Severe,Normal,719
+train,Mild,Anomalous,43
+train,Mild,Normal,1654
+train,Severe,Anomalous,47
+train,Severe,Normal,2740
+val,Mild,Anomalous,5
+val,Mild,Normal,558
+val,Severe,Anomalous,18
+val,Severe,Normal,919
