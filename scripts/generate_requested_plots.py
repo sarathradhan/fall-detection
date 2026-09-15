@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import pickle
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -15,10 +16,14 @@ from sklearn.decomposition import PCA
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SEVERITY_DIR = ROOT / "data" / "processed" / "severity" / "runs" / "k3_20260913T135813Z"
-DEFAULT_EVAL_DIR = ROOT / "results" / "cnn_lstm_baseline" / "severity_eval" / "k3_20260913T135813Z"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.data.severity_naming import load_severity_names  # noqa: E402
+
+DEFAULT_SEVERITY_DIR = ROOT / "data" / "processed" / "severity" / "runs" / "k2_20260914T055946Z"
+DEFAULT_EVAL_DIR = ROOT / "results" / "cnn_lstm_baseline" / "severity_eval" / "k2_20260914T055946Z"
 DEFAULT_OUTPUT_DIR = ROOT / "reports" / "requested_plots"
-SEVERITY_NAMES = {-1: "Uncertain", 0: "Mild", 1: "Moderate", 2: "Severe"}
 SEVERITY_COLORS = {-1: "#7A7A7A", 0: "#4C78A8", 1: "#59A14F", 2: "#E15759"}
 
 
@@ -29,9 +34,9 @@ def _load_mapping(severity_dir: Path) -> dict[int, int]:
     return {int(cluster_id): int(label) for cluster_id, label in payload["cluster_to_severity"].items()}
 
 
-def _cluster_display(cluster_id: int, cluster_to_severity: dict[int, int]) -> str:
+def _cluster_display(cluster_id: int, cluster_to_severity: dict[int, int], severity_names: dict[int, str]) -> str:
     severity = cluster_to_severity[cluster_id]
-    return f"C{cluster_id} {SEVERITY_NAMES[severity]}"
+    return f"C{cluster_id} {severity_names[severity]}"
 
 
 def load_test_clusters(severity_dir: Path) -> tuple[np.ndarray, np.ndarray, list[str], dict[int, int]]:
@@ -52,10 +57,15 @@ def load_test_clusters(severity_dir: Path) -> tuple[np.ndarray, np.ndarray, list
     return features, clusters, feature_names, _load_mapping(severity_dir)
 
 
-def save_test_cluster_counts(clusters: np.ndarray, cluster_to_severity: dict[int, int], output_dir: Path) -> Path:
+def save_test_cluster_counts(
+    clusters: np.ndarray,
+    cluster_to_severity: dict[int, int],
+    severity_names: dict[int, str],
+    output_dir: Path,
+) -> Path:
     cluster_order = sorted(cluster_to_severity, key=lambda cid: cluster_to_severity[cid])
     counts = np.array([int(np.sum(clusters == cid)) for cid in cluster_order])
-    labels = [_cluster_display(cid, cluster_to_severity) for cid in cluster_order]
+    labels = [_cluster_display(cid, cluster_to_severity, severity_names) for cid in cluster_order]
     colors = [SEVERITY_COLORS[cluster_to_severity[cid]] for cid in cluster_order]
 
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -78,6 +88,7 @@ def save_test_feature_scatter(
     clusters: np.ndarray,
     feature_names: list[str],
     cluster_to_severity: dict[int, int],
+    severity_names: dict[int, str],
     output_dir: Path,
 ) -> Path:
     acc_idx = feature_names.index("acc_mag_peak")
@@ -94,7 +105,7 @@ def save_test_feature_scatter(
             s=18,
             alpha=0.55,
             color=SEVERITY_COLORS[severity],
-            label=f"{_cluster_display(cid, cluster_to_severity)} (n={int(mask.sum())})",
+            label=f"{_cluster_display(cid, cluster_to_severity, severity_names)} (n={int(mask.sum())})",
         )
     ax.set_title("Test Severity Clusters: Acceleration vs Gyroscope Peak")
     ax.set_xlabel("acc_mag_peak")
@@ -114,6 +125,7 @@ def save_test_pca_plot(
     test_features: np.ndarray,
     test_clusters: np.ndarray,
     cluster_to_severity: dict[int, int],
+    severity_names: dict[int, str],
     output_dir: Path,
 ) -> Path:
     train_features = np.load(severity_dir / "clustering_features" / "train_fall_features.npy")
@@ -136,7 +148,7 @@ def save_test_pca_plot(
             s=18,
             alpha=0.55,
             color=SEVERITY_COLORS[severity],
-            label=f"{_cluster_display(cid, cluster_to_severity)} (n={int(mask.sum())})",
+            label=f"{_cluster_display(cid, cluster_to_severity, severity_names)} (n={int(mask.sum())})",
         )
     ax.set_title("KMeans Severity Test Clusters in PCA Space")
     ax.set_xlabel(f"PC1 ({explained[0] * 100:.1f}% variance)")
@@ -151,16 +163,22 @@ def save_test_pca_plot(
     return output_path
 
 
-def save_cnn_lstm_severity_metrics(eval_dir: Path, output_dir: Path) -> Path:
+def save_cnn_lstm_severity_metrics(eval_dir: Path, severity_names: dict[int, str], output_dir: Path) -> Path:
     window = pd.read_csv(eval_dir / "window_metrics_by_severity.csv")
     recording = pd.read_csv(eval_dir / "recording_summary_by_severity.csv")
     subject = pd.read_csv(eval_dir / "subject_summary_by_severity.csv")
 
-    order = [-1, 0, 1, 2]
+    # Order is derived from the categories actually present in this eval's own
+    # output, not a fixed list: a hardcoded [-1, 0, 1, 2] here previously broke
+    # (or silently mismatched) any run whose category count wasn't exactly 4.
+    order = sorted(window["severity_label"].unique().tolist())
+    missing = set(order) - set(severity_names)
+    if missing:
+        raise ValueError(f"{eval_dir}/window_metrics_by_severity.csv has severity_label(s) {missing} with no matching name in severity_names.")
     window = window.set_index("severity_label").loc[order].reset_index()
     recording = recording.set_index("severity_label").loc[order].reset_index()
     subject = subject.set_index("severity_label").loc[order].reset_index()
-    labels = [SEVERITY_NAMES[int(label)] for label in window["severity_label"]]
+    labels = [severity_names[int(label)] for label in window["severity_label"]]
     colors = [SEVERITY_COLORS[int(label)] for label in window["severity_label"]]
 
     recording["recording_recall"] = recording["detected_recordings"] / recording["recordings"]
@@ -224,12 +242,14 @@ def main() -> None:
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    features, clusters, feature_names, cluster_to_severity = load_test_clusters(args.severity_dir.resolve())
+    severity_dir = args.severity_dir.resolve()
+    severity_names = load_severity_names(severity_dir)
+    features, clusters, feature_names, cluster_to_severity = load_test_clusters(severity_dir)
     outputs = [
-        save_test_cluster_counts(clusters, cluster_to_severity, output_dir),
-        save_test_feature_scatter(features, clusters, feature_names, cluster_to_severity, output_dir),
-        save_test_pca_plot(args.severity_dir.resolve(), features, clusters, cluster_to_severity, output_dir),
-        save_cnn_lstm_severity_metrics(args.eval_dir.resolve(), output_dir),
+        save_test_cluster_counts(clusters, cluster_to_severity, severity_names, output_dir),
+        save_test_feature_scatter(features, clusters, feature_names, cluster_to_severity, severity_names, output_dir),
+        save_test_pca_plot(severity_dir, features, clusters, cluster_to_severity, severity_names, output_dir),
+        save_cnn_lstm_severity_metrics(args.eval_dir.resolve(), severity_names, output_dir),
     ]
 
     print("Generated requested plots:")

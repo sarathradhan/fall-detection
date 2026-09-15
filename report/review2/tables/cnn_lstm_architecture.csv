@@ -1,0 +1,14 @@
+layer,type,output_shape,params
+conv1d_3,Conv1D,"(None, 64, 32)",992
+batch_normalization_3,BatchNormalization,"(None, 64, 32)",128
+re_lu_3,ReLU,"(None, 64, 32)",0
+max_pooling1d_2,MaxPooling1D,"(None, 32, 32)",0
+conv1d_4,Conv1D,"(None, 32, 64)",10304
+batch_normalization_4,BatchNormalization,"(None, 32, 64)",256
+re_lu_4,ReLU,"(None, 32, 64)",0
+max_pooling1d_3,MaxPooling1D,"(None, 16, 64)",0
+lstm,LSTM,"(None, 16, 64)",33024
+global_average_pooling1d_1,GlobalAveragePooling1D,"(None, 64)",0
+dense_2,Dense,"(None, 32)",2080
+dropout_1,Dropout,"(None, 32)",0
+dense_3,Dense,"(None, 1)",33

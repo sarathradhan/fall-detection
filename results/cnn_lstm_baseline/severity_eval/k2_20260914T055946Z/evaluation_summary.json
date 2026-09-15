@@ -1,6 +1,6 @@
 {
   "threshold": 0.5,
-  "severity_dir": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\severity\\runs\\k2_20260914T055946Z",
+  "severity_dir": "C:\\proj\\fall-detection\\data\\processed\\severity\\runs\\k2_20260914T055946Z",
   "window_metrics": [
     {
       "severity_label": -1,
@@ -115,6 +115,6 @@
       "adl_false_trigger_rate": 0.0
     }
   },
-  "generated_at_utc": "2026-09-14T06:01:06.661386+00:00",
-  "command": "'scripts\\evaluate_cnn_lstm_by_severity.py' --severity-dir 'data\\processed\\severity\\runs\\k2_20260914T055946Z' --output-dir 'results\\cnn_lstm_baseline\\severity_eval\\k2_20260914T055946Z'"
+  "generated_at_utc": "2026-09-15T10:24:47.726917+00:00",
+  "command": "scripts/evaluate_cnn_lstm_by_severity.py --severity-dir data/processed/severity/runs/k2_20260914T055946Z --output-dir results/cnn_lstm_baseline/severity_eval/k2_20260914T055946Z"
 }

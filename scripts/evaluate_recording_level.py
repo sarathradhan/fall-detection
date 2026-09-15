@@ -7,6 +7,7 @@ not retrain the model or modify files under data/processed/.
 from __future__ import annotations
 
 import json
+import sys
 import warnings
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,11 @@ from sklearn.metrics import recall_score
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.keras_model_loading import load_keras_model  # noqa: E402
+
 DATA_DIR = ROOT / "data" / "processed"
 MODEL_PATH = ROOT / "results" / "cnn_baseline" / "cnn_baseline_best.keras"
 METADATA_PATH = ROOT / "results" / "cnn_baseline" / "run_metadata.json"
@@ -183,7 +189,12 @@ def main() -> None:
         raise FileNotFoundError(f"Trained model not found: {MODEL_PATH}")
     import tensorflow as tf
 
-    model = tf.keras.models.load_model(MODEL_PATH)
+    scripts_dir = ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from train_cnn_baseline import build_model
+
+    model = load_keras_model(tf, MODEL_PATH, build_model)
     probabilities = model.predict(features, batch_size=BATCH_SIZE, verbose=0).ravel()
     predictions = {threshold: (probabilities >= threshold).astype(np.int32) for threshold in thresholds}
 

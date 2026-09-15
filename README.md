@@ -123,12 +123,14 @@ Model outputs are saved under `results/cnn_baseline/` and `results/cnn_lstm_base
 
 ## Current Results Snapshot
 
+CNN-LSTM numbers reflect the model weights currently on disk (`results/cnn_lstm_baseline/run_metadata.json`, training commit `6e8b4a96`, 2026-09-13).
+
 | Model | Threshold | Fall precision | Fall recall | Fall F1 | Fall F2 | Recording recall | Impact-verified recall |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | CNN | 0.50 | 0.9761 | 0.9867 | 0.9814 | 0.9845 | 0.9967 | 0.9967 |
 | CNN | 0.20 | 0.9683 | 0.9925 | 0.9802 | 0.9876 | 1.0000 | 1.0000 |
-| CNN-LSTM | 0.50 | 0.9787 | 0.9933 | 0.9859 | 0.9904 | 1.0000 | 1.0000 |
-| CNN-LSTM | 0.25 | 0.9708 | 0.9983 | 0.9844 | 0.9927 | 1.0000 | 1.0000 |
+| CNN-LSTM | 0.50 | 0.9770 | 0.9925 | 0.9847 | 0.9894 | 1.0000 | 1.0000 |
+| CNN-LSTM | 0.25 | 0.9606 | 0.9950 | 0.9775 | 0.9879 | 1.0000 | 1.0000 |
 
 Although the validation-selected CNN-LSTM threshold is `0.25`, the project report recommends `0.50` for the current operating point because it keeps 100% recording-level and impact-verified recall while reducing ADL false-trigger recordings.
 
@@ -138,7 +140,7 @@ Although the validation-selected CNN-LSTM threshold is `0.25`, the project repor
 pytest
 ```
 
-The latest recorded verification in the project report was 15 passing tests with one expected synthetic-clustering convergence warning.
+The latest recorded verification in the project report was 16 passing tests with one expected synthetic-clustering convergence warning.
 
 ## Notes
 

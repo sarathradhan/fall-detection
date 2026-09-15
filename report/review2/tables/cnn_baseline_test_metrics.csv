@@ -1,0 +1,2 @@
+threshold,precision,recall,f1,confusion_matrix_TN_FP_FN_TP
+0.5,0.9761,0.9867,0.9814,"[[12398, 29], [16, 1184]]"

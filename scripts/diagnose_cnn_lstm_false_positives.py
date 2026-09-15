@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.data.sisfall_preprocessing import ACTIVITY_MAPPING  # noqa: E402
+from src.keras_model_loading import load_keras_model  # noqa: E402
 
 
 DATA_DIR = ROOT / "data" / "processed"
@@ -201,7 +202,12 @@ def diagnose_window_patterns(activity_frame: pd.DataFrame, thresholds: list[Thre
     require_file(model_path)
     import tensorflow as tf
 
-    model = tf.keras.models.load_model(model_path)
+    scripts_dir = ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from train_cnn_lstm_baseline import build_model
+
+    model = load_keras_model(tf, model_path, build_model)
     rows: list[dict[str, Any]] = []
     classifications: dict[str, dict[str, str]] = {}
     for recording_id in unique_recordings:

@@ -1,0 +1,4 @@
+split,subjects,recordings,windows_total,windows_adl,windows_fall
+train,26,2942,55423,50939,4484
+val,6,829,15073,13573,1500
+test,6,734,13627,12427,1200

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import pickle
+import sys
 import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -17,14 +18,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
+
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.data.severity_naming import load_severity_names  # noqa: E402
+
 REPORT_DIR = ROOT / "report"
 ASSETS_DIR = REPORT_DIR / "report_assets"
 PROCESSED_DIR = ROOT / "data" / "processed"
-CANONICAL_SEVERITY_RUN = "k3_20260913T135813Z"
+CANONICAL_SEVERITY_RUN = "k2_20260914T055946Z"
 DPI = 300
 CHANNEL_NAMES = ["acc1_x", "acc1_y", "acc1_z", "gyro_x", "gyro_y", "gyro_z"]
-SEVERITY_NAMES = {-1: "Uncertain", 0: "Mild", 1: "Moderate", 2: "Severe"}
 SEVERITY_COLORS = {-1: "#7A7A7A", 0: "#4C78A8", 1: "#59A14F", 2: "#E15759"}
 
 
@@ -33,6 +39,7 @@ class ReportContext:
     canonical_severity_run: str = CANONICAL_SEVERITY_RUN
     severity_dir: Path | None = None
     severity_eval_dir: Path | None = None
+    severity_names: dict[int, str] = field(default_factory=dict)
     cnn_dir: Path = field(default_factory=lambda: ROOT / "results" / "cnn_baseline")
     cnn_lstm_dir: Path = field(default_factory=lambda: ROOT / "results" / "cnn_lstm_baseline")
     missing_artifacts: list[str] = field(default_factory=list)
@@ -105,6 +112,12 @@ def resolve_canonical_paths(ctx: ReportContext) -> None:
             ROOT / "results" / "cnn_lstm_baseline" / "severity_eval" / ctx.canonical_severity_run,
             "canonical severity evaluation",
         )
+
+    if ctx.severity_dir is not None:
+        try:
+            ctx.severity_names = load_severity_names(ctx.severity_dir)
+        except (FileNotFoundError, ValueError) as exc:
+            ctx.missing_artifacts.append(f"severity category names: {exc}")
 
 
 def safe_plot(name: str, fn: Callable[[], None], ctx: ReportContext) -> str | None:
@@ -378,7 +391,7 @@ def plot_severity_pca(ctx: ReportContext) -> None:
             s=14,
             alpha=0.55,
             color=SEVERITY_COLORS[severity],
-            label=f"Cluster {cid} → {SEVERITY_NAMES[severity]}",
+            label=f"Cluster {cid} → {ctx.severity_names[severity]}",
         )
     ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.1%})")
     ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.1%})")
@@ -437,7 +450,7 @@ def plot_severity_recall_bar(ctx: ReportContext) -> None:
     severity_eval = ctx.metrics.get("severity_eval")
     if not severity_eval:
         raise ValueError("severity evaluation summary missing")
-    rows = [row for row in severity_eval["window_metrics"] if row["severity_label"] in (-1, 0, 1, 2)]
+    rows = [row for row in severity_eval["window_metrics"] if row["severity_label"] in ctx.severity_names]
     rows.sort(key=lambda r: r["severity_label"])
     labels = [row["severity"] for row in rows]
     recalls = [row["window_recall"] for row in rows]
@@ -575,11 +588,14 @@ def build_report(ctx: ReportContext, plot_paths: dict[str, str | None]) -> str:
         lines.append(f"\n![CNN-LSTM PR curve]({plot_paths['cnn_lstm_pr']})")
     lines.append("")
 
+    severity_category_names = [name for label, name in sorted(ctx.severity_names.items()) if label >= 0]
+    selected_k = len(severity_category_names) or "?"
+
     lines.append("## 7. Severity Labeling Pipeline")
     lines.append("")
-    lines.append("- Stage 1: 58 hand-crafted IMU features from fall windows → train-only StandardScaler → K-Means k=3.")
+    lines.append(f"- Stage 1: 58 hand-crafted IMU features from fall windows → train-only StandardScaler → K-Means k={selected_k}.")
     lines.append("- Stage 2: Isolation Forest (contamination 2%, 256 trees) flags atypical falls as Uncertain (-1).")
-    lines.append("- Cluster→severity mapping by ascending acc/gyro peak intensity: Mild / Moderate / Severe.")
+    lines.append(f"- Cluster→severity mapping by ascending acc/gyro peak intensity: {' / '.join(severity_category_names) or 'N/A'}.")
     lines.append("- **Sensor-derived relative severity**, not clinically validated injury severity.")
     if plot_paths.get("severity_pca"):
         lines.append(f"\n![Severity PCA clusters]({plot_paths['severity_pca']})")
@@ -593,7 +609,7 @@ def build_report(ctx: ReportContext, plot_paths: dict[str, str | None]) -> str:
     lines.append("")
     if sev.get("window_metrics"):
         for row in sev["window_metrics"]:
-            if row["severity_label"] in (-1, 0, 1, 2):
+            if row["severity_label"] in ctx.severity_names:
                 lines.append(
                     f"- {row['severity']}: recall **{fmt_pct(row['window_recall'])}** "
                     f"({row['detected_windows']}/{row['windows']} windows)."
@@ -617,7 +633,7 @@ def build_report(ctx: ReportContext, plot_paths: dict[str, str | None]) -> str:
 
     lines.append("## 10. Next Steps")
     lines.append("")
-    lines.append("1. Freeze one canonical timestamped run (preprocessing → severity k=3 → evaluation → diagnostics).")
+    lines.append(f"1. Freeze one canonical timestamped run (preprocessing → severity k={selected_k} → evaluation → diagnostics).")
     lines.append("2. Multi-task model: binary fall head + severity head on detected impact windows.")
     lines.append("3. FiLM / subject-conditioning prototype for cross-subject robustness.")
     lines.append("4. Four-way comparison table: CNN vs CNN-LSTM vs multi-task vs FiLM (same splits/threshold protocol).")

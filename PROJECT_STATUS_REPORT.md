@@ -23,9 +23,9 @@ The current canonical binary dataset contains **84,123 windows** with shape `(64
 9. **Windowing:** Windows contain 64 samples with stride 16. At 20 Hz, each window is 3.2 seconds and each stride is 0.8 seconds, producing 75% overlap.
 10. **Impact-centered labels:** For fall recordings, the raw acceleration-magnitude peak identifies the impact. Only windows containing that impact receive label 1; other windows from the same recording remain background label 0.
 11. **EDA and quality checks:** Class balance, signal distributions, autocorrelation, outliers, acceleration peaks, channel health, and integrity checks were exported to CSV and plots.
-12. **Unsupervised severity labeling:** Fall windows were transformed into 58 statistical features, scaled using train fall windows, clustered with KMeans, and ordered by acceleration/gyroscope intensity into Mild, Moderate, and Severe.
+12. **Unsupervised severity labeling:** Fall windows were transformed into 58 statistical features, scaled using train fall windows, clustered with KMeans, and ordered by acceleration/gyroscope intensity into Mild and Severe (K=2, canonical run `k2_20260914T055946Z`). An earlier K=3 (Mild/Moderate/Severe) run was evaluated first and superseded; it is archived under `data/processed/deprecated_severity/` for reference.
 13. **Anomaly refinement:** A train-only Isolation Forest flags unusual fall windows. Anomalous fall severity is changed to `-1` in refined labels, while the original cluster labels remain available.
-14. **Automated testing:** The repository includes preprocessing, pipeline, severity, and anomaly tests. The last recorded verification was 15 passing tests with one expected synthetic-clustering convergence warning.
+14. **Automated testing:** The repository includes preprocessing, pipeline, severity, and anomaly tests. The last recorded verification was 16 passing tests with one expected synthetic-clustering convergence warning.
 
 ## 3. Current Dataset Statistics
 
@@ -84,6 +84,8 @@ The threshold `0.20` was selected on validation by maximum F2, with recall used 
 
 The second supervised baseline was trained by `scripts/train_cnn_lstm_baseline.py`. It uses the same natural imbalanced train/validation/test splits and the same class-weighting strategy as the CNN baseline, but adds an LSTM layer after the Conv1D feature extractor.
 
+Numbers below reflect the CNN-LSTM's most recent training run (commit `6e8b4a96`, 2026-09-13), sourced from `results/cnn_lstm_baseline/run_metadata.json` and `results/cnn_lstm_baseline/threshold_sweep.csv`. An earlier run (commit `2a6e5e9c`, 2026-09-05) produced different numbers (best epoch 9, 19 epochs, 241.5s training time, test@0.50 precision 0.9787/recall 0.9933/F1 0.9859); this document previously carried that earlier run's numbers after the model was retrained, which has now been corrected to match the model weights actually on disk.
+
 | Setting | Value |
 | --- | --- |
 | Architecture | Conv1D front-end with BatchNorm, ReLU, and MaxPooling, followed by `LSTM(64, return_sequences=True, unroll=True)`, GlobalAveragePooling, Dense(32), Dropout(0.3), and sigmoid output |
@@ -93,34 +95,34 @@ The second supervised baseline was trained by `scripts/train_cnn_lstm_baseline.p
 | Loss | Binary cross-entropy |
 | Batch size | 64 |
 | Maximum epochs | 100 |
-| Best epoch | 9 |
-| Stopping | Early stopping completed after epoch 19; restored best validation-loss weights |
+| Best epoch | 4 |
+| Stopping | Early stopping completed after epoch 14; restored best validation-loss weights |
 | Class weights | ADL/background `0.5440134278254383`; fall `6.180084745762712` |
 | TensorFlow | 2.21.0 |
-| Training time | 241.50411779998103 seconds |
+| Training time | 466.1173703999957 seconds |
 | Interrupted | false |
 
 ### CNN-LSTM validation threshold sweep
 
 | Threshold | Precision (fall) | Recall (fall) | F1 (fall) | F2 (fall) |
 | ---: | ---: | ---: | ---: | ---: |
-| 0.1 | 0.9419924337957125 | 0.996 | 0.9682436811406351 | 0.9847086738729238 |
-| 0.15 | 0.9467680608365019 | 0.996 | 0.9707602339181286 | 0.9857482185273159 |
-| 0.2 | 0.9540229885057471 | 0.996 | 0.974559686888454 | 0.9873116574147502 |
-| 0.25 | 0.9582798459563543 | 0.9953333333333333 | 0.9764551994767822 | 0.9876951574490606 |
-| 0.3 | 0.9606705351386202 | 0.9933333333333333 | 0.9767289413307112 | 0.9866242881737518 |
-| 0.35 | 0.9644012944983819 | 0.9933333333333333 | 0.9786535303776683 | 0.9874088800530152 |
-| 0.4 | 0.9662556781310837 | 0.9926666666666667 | 0.9792831305491615 | 0.9872695928921894 |
-| 0.45 | 0.96875 | 0.992 | 0.9802371541501976 | 0.9872611464968153 |
-| 0.5 | 0.970626631853786 | 0.9913333333333333 | 0.9808707124010554 | 0.9871216144450345 |
-| 0.55 | 0.9712606139777923 | 0.9913333333333333 | 0.9811943253051798 | 0.9872526888859381 |
-| 0.6 | 0.9725130890052356 | 0.9906666666666667 | 0.9815059445178336 | 0.9869819341126461 |
-| 0.65 | 0.973132372214941 | 0.99 | 0.9814937210839392 | 0.9865798564974754 |
-| 0.7 | 0.9756738987508218 | 0.9893333333333333 | 0.9824561403508771 | 0.9865709347161282 |
-| 0.75 | 0.9794973544973545 | 0.9873333333333333 | 0.9833997343957503 | 0.9857561235356762 |
-| 0.8 | 0.9833666001330672 | 0.9853333333333333 | 0.9843489843489843 | 0.9849393575902972 |
-| 0.85 | 0.9846153846153847 | 0.9813333333333333 | 0.9829716193656094 | 0.9819879919946631 |
-| 0.9 | 0.9865501008742434 | 0.978 | 0.9822564445932374 | 0.9796981434486444 |
+| 0.1 | 0.9360100376411543 | 0.9946666666666667 | 0.9644473173884939 | 0.9823544903871477 |
+| 0.15 | 0.9454660748256183 | 0.994 | 0.9691257718557036 | 0.9838986406229379 |
+| 0.2 | 0.9520460358056266 | 0.9926666666666667 | 0.9719321148825065 | 0.9842675832892649 |
+| 0.25 | 0.9538757206918642 | 0.9926666666666667 | 0.9728846782097353 | 0.9846581140060838 |
+| 0.3 | 0.9575016097875081 | 0.9913333333333333 | 0.9741238126433017 | 0.9843770687144181 |
+| 0.35 | 0.9611901681759379 | 0.9906666666666667 | 0.9757058437294813 | 0.9846276172806785 |
+| 0.4 | 0.9623621025308241 | 0.9886666666666667 | 0.9753370601775732 | 0.9832913406709985 |
+| 0.45 | 0.9648666232921275 | 0.9886666666666667 | 0.9766216661178795 | 0.9838131882711955 |
+| 0.5 | 0.9692609548724657 | 0.988 | 0.9785407725321889 | 0.9841944481338823 |
+| 0.55 | 0.9705111402359109 | 0.9873333333333333 | 0.9788499669530734 | 0.9839224023385597 |
+| 0.6 | 0.9749670619235836 | 0.9866666666666667 | 0.9807819748177601 | 0.9843043362596435 |
+| 0.65 | 0.9761904761904762 | 0.984 | 0.9800796812749004 | 0.9824281150159745 |
+| 0.7 | 0.9780585106382979 | 0.9806666666666667 | 0.9793608521970706 | 0.9801439232409381 |
+| 0.75 | 0.979305740987984 | 0.978 | 0.9786524349566378 | 0.9782608695652174 |
+| 0.8 | 0.9812458137977227 | 0.9766666666666667 | 0.978950885399265 | 0.9775790738022154 |
+| 0.85 | 0.9837177747625508 | 0.9666666666666667 | 0.9751176866173503 | 0.9700294353759701 |
+| 0.9 | 0.9876203576341128 | 0.9573333333333334 | 0.972241029113067 | 0.9632412127716662 |
 
 The threshold `0.25` was selected on validation by maximum F2. At test time, threshold `0.50` is recommended as the operating point because it preserves 100% recording-level and impact-verified recall while reducing ADL false-trigger recordings from 3 to 1.
 
@@ -128,8 +130,8 @@ The threshold `0.25` was selected on validation by maximum F2. At test time, thr
 
 | Threshold | Precision (fall) | Recall (fall) | F1 (fall) | F2 (fall) | Confusion matrix `[[TN, FP], [FN, TP]]` |
 | ---: | ---: | ---: | ---: | ---: | --- |
-| 0.5 | 0.9786535303776683 | 0.9933333333333333 | 0.9859387923904053 | 0.9903622465935527 | `[[12401, 26], [8, 1192]]` |
-| 0.25 selected | 0.9708265802269044 | 0.9983333333333333 | 0.9843878389482333 | 0.9927079880676168 | `[[12391, 36], [2, 1198]]` |
+| 0.5 | 0.9770303527481542 | 0.9925 | 0.9847044233154196 | 0.989367004485795 | `[[12399, 28], [9, 1191]]` |
+| 0.25 selected | 0.9605792437650845 | 0.995 | 0.9774866966844045 | 0.9879199073307959 | `[[12378, 49], [6, 1194]]` |
 
 The complete classification reports, threshold sweep, training history, checkpoints, recording-level evaluation, and false-positive diagnostics are stored in `results/cnn_lstm_baseline/`.
 
@@ -139,8 +141,8 @@ The complete classification reports, threshold sweep, training history, checkpoi
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | CNN_baseline@0.50 | 0.9760923330585326 | 0.9866666666666667 | 0.9813510153336096 | 0.9845335107267587 | 0.9966666666666667 | 0.9966666666666667 | 0 | reused |
 | CNN_baseline@0.20 | 0.9682926829268292 | 0.9925 | 0.980246913580247 | 0.9875621890547264 | 1.0 | 1.0 | 0 | reused |
-| CNN_LSTM@0.50 | 0.9786535303776683 | 0.9933333333333333 | 0.9859387923904053 | 0.9903622465935527 | 1.0 | 1.0 | 1 | reused |
-| CNN_LSTM@0.25 | 0.9708265802269044 | 0.9983333333333333 | 0.9843878389482333 | 0.9927079880676168 | 1.0 | 1.0 | 3 | reused |
+| CNN_LSTM@0.50 | 0.9770303527481542 | 0.9925 | 0.9847044233154196 | 0.989367004485795 | 1.0 | 1.0 | 1 | reused |
+| CNN_LSTM@0.25 | 0.9605792437650845 | 0.995 | 0.9774866966844045 | 0.9879199073307959 | 1.0 | 1.0 | 3 | reused |
 
 The CNN-LSTM's window-level precision at threshold `0.50` is higher than the CNN baseline's window-level precision at threshold `0.50`, despite the CNN-LSTM having 1 ADL false-trigger recording and the CNN baseline having 0. These are different granularities: one bad ADL window barely moves window-level precision, but it still counts as a full recording-level false trigger.
 
@@ -152,19 +154,21 @@ Recommendation: use CNN-LSTM at threshold `0.50` as the model and operating poin
 
 ## 6. Severity and Anomaly Results
 
-The intended current three-level result is `0 = Mild`, `1 = Moderate`, `2 = Severe`, and `-1 = non-applicable or uncertain`. ADL/background windows are always `-1` for severity. KMeans is fitted only on train fall windows with `k=3`, `random_state=42`, and `n_init=20`. The Isolation Forest uses contamination 0.02, 256 estimators, and random state 42.
+The current canonical severity result is `0 = Mild`, `1 = Severe`, and `-1 = non-applicable or uncertain` (K=2, run `k2_20260914T055946Z`). ADL/background windows are always `-1` for severity. KMeans is fitted only on train fall windows with `k=2`, `random_state=42`, and `n_init=20`. K=3 was evaluated first but is not supported: the clustering metrics and cluster profiles did not show a defensible three-level low/medium/high progression, so K=2 was selected for this review cycle and the earlier K=3 run is kept archived under `data/processed/deprecated_severity/` for historical reference only. The Isolation Forest uses contamination 0.02, 256 estimators, and random state 42.
 
 The canonical post-Isolation Forest fall export contains 7,184 rows: train 4,484, validation 1,500, and test 1,200. Anomaly counts are train 90 (2.01%), validation 23 (1.53%), and test 24 (2.00%). Anomalous fall windows are uncertain, not automatically bad data; review or exclude them deliberately during modeling.
 
 ### Important artifact consistency note
 
-The repository contains outputs from more than one severity-analysis run. `data/processed/severity/reports/post_isolation_forest_fall_windows.csv`, `cluster_feature_report.csv`, and the recorded project summary contain the later three-level Mild/Moderate/Severe result. Some files directly under `data/processed/severity/` such as `severity_cluster_sizes.csv`, `severity_cluster_profiles.csv`, and `anomaly_by_severity.csv` contain an older two-cluster or Low/Medium result. The historical K2/K3 diagnostics explain that K=2 had better separation scores, while K=3 was selected for the desired three-level interpretation. Do not mix these older two-cluster files with the current three-level labels; regenerate them together before using them for analysis. This mismatch was resolved in versioned run `data/processed/severity/runs/k3_20260913T135813Z`, whose labels, train-fitted estimators, and downstream exports are self-contained.
+The repository contains outputs from more than one severity-analysis run. The versioned run `data/processed/severity/runs/k2_20260914T055946Z` is canonical: its labels, train-fitted estimators, and downstream exports are self-contained and use the two-level Mild/Severe result. The earlier K=3 run (`k3_20260913T135813Z`) and its Mild/Moderate/Severe result were evaluated first, then superseded by K=2 for this review cycle; it is archived under `data/processed/deprecated_severity/20260914T055846Z/` for reference only and should not be used for current analysis. Some files directly under `data/processed/severity/` (not under `runs/`), such as `severity_cluster_sizes.csv`, `severity_cluster_profiles.csv`, and `anomaly_by_severity.csv`, predate the `runs/` versioning entirely and are not canonical for either K=2 or K=3; always use a specific timestamped run directory under `data/processed/severity/runs/`.
 
-### Versioned K=3 evaluation
+### Versioned K=2 evaluation
 
-The CNN-LSTM was evaluated at threshold `0.50` using refined labels from the same K=3 run. Test window counts and recall were: uncertain `-1` 24 / 95.83%, Mild 446 / 98.65%, Moderate 298 / 100.00%, and Severe 432 / 99.54%. Overall test metrics were 97.70% window precision, 99.25% window recall, 98.47% window F1, 100% fall-recording recall, and 100% impact-verified recording recall across 300 fall recordings. The regenerated model produced 0 false-triggered ADL recordings.
+The CNN-LSTM (the existing binary fall/no-fall model; it has no severity-prediction head) was evaluated at threshold `0.50` by bucketing its predictions using refined labels from the canonical K=2 run. Test window counts and recall were: uncertain `-1` 24 / 95.83%, Mild 457 / 98.69%, and Severe 719 / 99.72%. Overall test metrics were 97.70% window precision, 99.25% window recall, 98.47% window F1, 100% fall-recording recall, and 100% impact-verified recording recall across 300 fall recordings. The model produced 0 false-triggered ADL recordings.
 
-Mean subject recall was 91.67% for uncertain, 98.48% for Mild, 100.00% for Moderate, and 99.55% for Severe. Complete window-, recording-, subject-, and impact-verified outputs are under `results/cnn_lstm_baseline/severity_eval/k3_20260913T135813Z/`. The 2-consecutive-window rule is recorded as analysis-only future mitigation; in this run it retained 100% fall-recording and impact-verified recall with 0 ADL false-trigger recordings and does not change the default operating point.
+Mean subject recall was 91.67% for uncertain, 98.59% for Mild, and 99.72% for Severe. Complete window-, recording-, subject-, and impact-verified outputs are under `results/cnn_lstm_baseline/severity_eval/k2_20260914T055946Z/`. The 2-consecutive-window rule is recorded as analysis-only future mitigation; in this run it retained 100% fall-recording and impact-verified recall with 0 ADL false-trigger recordings and does not change the default operating point.
+
+A severity-aware CNN-LSTM — a model trained with its own severity-prediction head, rather than the existing binary model's predictions bucketed by severity group — has not been built. That remains **pending** for a future pass; this review only corrected the K=2/K=3 label-evaluation mismatch and the reporting code, it did not retrain or re-derive any model.
 
 ## 7. Stored Arrays and Models
 
@@ -909,8 +913,9 @@ First 10 rows:
 
 ## 9. How to Continue
 
-1. Completed: reran the chosen K=3 pipeline and downstream report export as versioned run `k3_20260913T135813Z`.
-2. Completed: evaluated CNN-LSTM threshold `0.50` separately for Mild, Moderate, Severe, and uncertain (`-1`) fall windows.
+1. Completed: reran the chosen K=2 pipeline and downstream report export as versioned run `k2_20260914T055946Z` (superseding the earlier K=3 run `k3_20260913T135813Z`, now archived under `data/processed/deprecated_severity/`).
+2. Completed: evaluated CNN-LSTM threshold `0.50` separately for Mild, Severe, and uncertain (`-1`) fall windows.
+2a. Pending: a severity-aware CNN-LSTM with its own severity-prediction head has not been trained; the current severity evaluation only buckets the existing binary model's predictions by K=2 severity group.
 3. Future mitigation: assess a 2-consecutive-window alert rule for single-window ADL false-trigger blips; current analysis is non-operational.
 4. Completed: reported window-, recording-, subject-level, and impact-verified metrics in the versioned evaluation outputs.
 5. Verified: preprocessing scaler is train-only; severity feature scaler, KMeans, and Isolation Forest are fit on train fall windows only.

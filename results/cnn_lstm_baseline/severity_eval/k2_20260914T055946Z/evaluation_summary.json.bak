@@ -1,0 +1,120 @@
+{
+  "threshold": 0.5,
+  "severity_dir": "C:\\Users\\drums\\Desktop\\fall detection project\\data\\processed\\severity\\runs\\k2_20260914T055946Z",
+  "window_metrics": [
+    {
+      "severity_label": -1,
+      "severity": "Uncertain (-1)",
+      "windows": 24,
+      "detected_windows": 23,
+      "window_recall": 0.9583333333333334,
+      "window_precision": 0.018867924528301886,
+      "window_f1": 0.03700724054706355
+    },
+    {
+      "severity_label": 0,
+      "severity": "Mild",
+      "windows": 457,
+      "detected_windows": 451,
+      "window_recall": 0.986870897155361,
+      "window_precision": 0.3699753896636587,
+      "window_f1": 0.5381861575178998
+    },
+    {
+      "severity_label": 1,
+      "severity": "Severe",
+      "windows": 719,
+      "detected_windows": 717,
+      "window_recall": 0.9972183588317107,
+      "window_precision": 0.5881870385561936,
+      "window_f1": 0.739938080495356
+    }
+  ],
+  "recording_metrics_by_severity": [
+    {
+      "severity_label": -1,
+      "severity": "Uncertain (-1)",
+      "recordings": 13,
+      "detected_recordings": 12,
+      "impact_verified_recordings": 12,
+      "two_consecutive_recordings": 4
+    },
+    {
+      "severity_label": 0,
+      "severity": "Mild",
+      "recordings": 126,
+      "detected_recordings": 125,
+      "impact_verified_recordings": 125,
+      "two_consecutive_recordings": 113
+    },
+    {
+      "severity_label": 1,
+      "severity": "Severe",
+      "recordings": 186,
+      "detected_recordings": 186,
+      "impact_verified_recordings": 186,
+      "two_consecutive_recordings": 184
+    }
+  ],
+  "subject_metrics_by_severity": [
+    {
+      "severity_label": -1,
+      "severity": "Uncertain (-1)",
+      "subjects": 4,
+      "mean_subject_recall": 0.9166666666666666,
+      "min_subject_recall": 0.6666666666666666,
+      "impact_verified_subjects": 4
+    },
+    {
+      "severity_label": 0,
+      "severity": "Mild",
+      "subjects": 4,
+      "mean_subject_recall": 0.9858616639538325,
+      "min_subject_recall": 0.96875,
+      "impact_verified_subjects": 4
+    },
+    {
+      "severity_label": 1,
+      "severity": "Severe",
+      "subjects": 4,
+      "mean_subject_recall": 0.9971590909090909,
+      "min_subject_recall": 0.9886363636363636,
+      "impact_verified_subjects": 4
+    }
+  ],
+  "overall_metrics": {
+    "window": {
+      "tp": 1191,
+      "fp": 28,
+      "fn": 9,
+      "tn": 12399,
+      "precision": 0.9770303527481542,
+      "recall": 0.9925,
+      "f1": 0.9847044233154196
+    },
+    "recording": {
+      "fall_recordings": 300,
+      "detected_fall_recordings": 300,
+      "recording_recall": 1.0,
+      "adl_recordings": 434,
+      "adl_false_trigger_recordings": 0,
+      "adl_false_trigger_rate": 0.0
+    },
+    "subject_count": 6,
+    "impact_verified_recordings": 300
+  },
+  "future_two_consecutive_window_policy": {
+    "status": "analysis_only; default predictions unchanged",
+    "rule": "alert only when two adjacent windows are predicted positive within one recording",
+    "recording": {
+      "fall_recordings": 300,
+      "detected_fall_recordings": 300,
+      "recording_recall": 1.0,
+      "adl_recordings": 434,
+      "adl_false_trigger_recordings": 0,
+      "adl_false_trigger_rate": 0.0
+    }
+  },
+  "generated_at_utc": "2026-09-14T06:01:06.661386+00:00",
+  "command": "'scripts\\evaluate_cnn_lstm_by_severity.py' --severity-dir 'data\\processed\\severity\\runs\\k2_20260914T055946Z' --output-dir 'results\\cnn_lstm_baseline\\severity_eval\\k2_20260914T055946Z'"
+}

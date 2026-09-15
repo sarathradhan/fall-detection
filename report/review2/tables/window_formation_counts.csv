@@ -1,0 +1,4 @@
+split,tensor_shape,windows_total,windows_adl,windows_fall
+train,"(64, 6)",55423,50939,4484
+val,"(64, 6)",15073,13573,1500
+test,"(64, 6)",13627,12427,1200

@@ -20,6 +20,11 @@ from sklearn.utils.class_weight import compute_class_weight
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.keras_model_loading import load_keras_model  # noqa: E402
+
 DATA_DIR = ROOT / "data" / "processed"
 RESULTS_DIR = ROOT / "results" / "cnn_lstm_baseline"
 EVAL_DIR = RESULTS_DIR / "recording_level_eval"
@@ -286,7 +291,7 @@ def evaluate_saved_best(tf: Any) -> None:
     model_path = RESULTS_DIR / "cnn_lstm_best.keras"
     if not model_path.exists():
         raise FileNotFoundError(f"Saved best CNN-LSTM model not found: {model_path}")
-    model = tf.keras.models.load_model(model_path)
+    model = load_keras_model(tf, model_path, build_model)
     default_test = evaluate_test(model, test_x, test_y, DEFAULT_THRESHOLD)
     chosen_test = evaluate_test(model, test_x, test_y, chosen["threshold"])
     evaluation = run_recording_evaluation(model, test_x, test_y, recording_ids, subject_ids, chosen["threshold"])

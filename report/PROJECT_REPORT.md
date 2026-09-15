@@ -1,9 +1,9 @@
 # Fall Detection System — End-to-End Project Report
 
-Generated: 2026-09-15 07:48 UTC
-Canonical severity run: `k3_20260913T135813Z`
-Severity artifacts: `data/processed/deprecated_severity/20260914T055846Z/data/processed/severity/runs/k3_20260913T135813Z`
-Severity evaluation: `data/processed/deprecated_severity/20260914T055846Z/results/cnn_lstm_baseline/severity_eval/k3_20260913T135813Z`
+Generated: 2026-09-15 09:50 UTC
+Canonical severity run: `k2_20260914T055946Z`
+Severity artifacts: `data/processed/severity/runs/k2_20260914T055946Z`
+Severity evaluation: `results/cnn_lstm_baseline/severity_eval/k2_20260914T055946Z`
 
 ## 1. Problem Statement & Motivation
 
@@ -60,9 +60,9 @@ Falls are a leading cause of injury and loss of independence among older adults.
 
 ## 7. Severity Labeling Pipeline
 
-- Stage 1: 58 hand-crafted IMU features from fall windows → train-only StandardScaler → K-Means k=3.
+- Stage 1: 58 hand-crafted IMU features from fall windows → train-only StandardScaler → K-Means k=2.
 - Stage 2: Isolation Forest (contamination 2%, 256 trees) flags atypical falls as Uncertain (-1).
-- Cluster→severity mapping by ascending acc/gyro peak intensity: Mild / Moderate / Severe.
+- Cluster→severity mapping by ascending acc/gyro peak intensity: Mild / Severe.
 - **Sensor-derived relative severity**, not clinically validated injury severity.
 
 ![Severity PCA clusters](report_assets/severity_pca_clusters.png)
@@ -74,9 +74,8 @@ Falls are a leading cause of injury and loss of independence among older adults.
 ## 8. Severity-wise Model Evaluation
 
 - Uncertain (-1): recall **0.9583** (23/24 windows).
-- Mild: recall **0.9865** (440/446 windows).
-- Moderate: recall **1.0000** (298/298 windows).
-- Severe: recall **0.9954** (430/432 windows).
+- Mild: recall **0.9869** (451/457 windows).
+- Severe: recall **0.9972** (717/719 windows).
 
 ![Severity recall](report_assets/severity_recall_by_class.png)
 
@@ -90,7 +89,7 @@ Falls are a leading cause of injury and loss of independence among older adults.
 
 ## 10. Next Steps
 
-1. Freeze one canonical timestamped run (preprocessing → severity k=3 → evaluation → diagnostics).
+1. Freeze one canonical timestamped run (preprocessing → severity k=2 → evaluation → diagnostics).
 2. Multi-task model: binary fall head + severity head on detected impact windows.
 3. FiLM / subject-conditioning prototype for cross-subject robustness.
 4. Four-way comparison table: CNN vs CNN-LSTM vs multi-task vs FiLM (same splits/threshold protocol).

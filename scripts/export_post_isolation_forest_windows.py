@@ -4,6 +4,7 @@ import json
 import pickle
 import argparse
 import shlex
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +13,11 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.data.severity_naming import load_severity_names as _load_severity_names_from  # noqa: E402
+
 PROCESSED_DIR = ROOT / "data" / "processed"
 SEVERITY_DIR = PROCESSED_DIR / "severity"
 CLUSTER_FEATURES_DIR = SEVERITY_DIR / "clustering_features"
@@ -23,13 +29,6 @@ CLASS_NAMES = {
     1: "Fall",
 }
 
-SEVERITY_NAMES = {
-    -1: "Non-applicable / uncertain",
-    0: "Mild",
-    1: "Moderate",
-    2: "Severe",
-}
-
 
 def load_json(path: Path) -> dict:
     with path.open(encoding="utf-8") as handle:
@@ -37,14 +36,7 @@ def load_json(path: Path) -> dict:
 
 
 def load_severity_names() -> dict[int, str]:
-    summary_path = SEVERITY_DIR / "severity_summary.json"
-    if not summary_path.exists():
-        return dict(SEVERITY_NAMES)
-    summary = load_json(summary_path)
-    names = summary.get("severity_names")
-    if not isinstance(names, dict):
-        return dict(SEVERITY_NAMES)
-    return {int(label): str(name) for label, name in names.items()}
+    return _load_severity_names_from(SEVERITY_DIR)
 
 
 def load_models() -> tuple[object, object, dict[int, int], dict[int, str]]:

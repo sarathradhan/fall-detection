@@ -1,0 +1,11 @@
+parameter,value
+Original sampling rate,200 Hz
+Downsampled rate,20 Hz
+Butterworth filter type,low-pass
+Butterworth filter order,"2 (as invoked; function default is 4, not used)"
+Butterworth cutoff frequency,5 Hz
+Channels retained,"6 (acc1_x/y/z, gyro_x/y/z)"
+Channels dropped,"3 (acc2_x/y/z, second accelerometer)"
+Scaler,"StandardScaler, fit on train split only"
+Window size,64 samples (3.2 s @ 20 Hz)
+Window stride,"16 samples (0.8 s @ 20 Hz, 75% overlap)"

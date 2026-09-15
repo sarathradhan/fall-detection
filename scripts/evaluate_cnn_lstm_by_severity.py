@@ -13,25 +13,25 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.data.severity_naming import load_severity_names  # noqa: E402
+from src.keras_model_loading import load_keras_model  # noqa: E402
+
 DATA_DIR = ROOT / "data" / "processed"
 MODEL_PATH = ROOT / "results" / "cnn_lstm_baseline" / "cnn_lstm_best.keras"
 OUTPUT_DIR = ROOT / "results" / "cnn_lstm_baseline" / "severity_eval"
 THRESHOLD = 0.50
-SEVERITY_NAMES = {-1: "Uncertain (-1)", 0: "Mild", 1: "Moderate", 2: "Severe"}
 
 
-def load_severity_names(severity_dir: Path) -> dict[int, str]:
-    summary_path = severity_dir / "severity_summary.json"
-    if not summary_path.exists():
-        return dict(SEVERITY_NAMES)
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    names = summary.get("severity_names")
-    if not isinstance(names, dict):
-        return dict(SEVERITY_NAMES)
-    parsed = {int(label): str(name) for label, name in names.items()}
-    if -1 in parsed:
-        parsed[-1] = "Uncertain (-1)"
-    return parsed
+def load_cnn_lstm_model(tf, model_path: Path):
+    scripts_dir = ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from train_cnn_lstm_baseline import build_model
+
+    return load_keras_model(tf, model_path, build_model)
 
 
 def evaluate(severity_dir: Path, output_dir: Path) -> None:
@@ -47,7 +47,7 @@ def evaluate(severity_dir: Path, output_dir: Path) -> None:
 
     tf.config.threading.set_intra_op_parallelism_threads(1)
     tf.config.threading.set_inter_op_parallelism_threads(1)
-    model = tf.keras.models.load_model(MODEL_PATH)
+    model = load_cnn_lstm_model(tf, MODEL_PATH)
     probabilities = model(arrays["test.npy"], training=False).numpy().ravel()
     predictions = probabilities >= THRESHOLD
     labels = arrays["test_labels.npy"].astype(int)

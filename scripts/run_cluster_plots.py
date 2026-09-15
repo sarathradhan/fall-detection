@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import pickle
 import argparse
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -13,6 +14,11 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.data.severity_naming import load_severity_names  # noqa: E402
+
 SEVERITY_DIR = ROOT / "data" / "processed" / "severity"
 CLUSTER_FEATURES_DIR = SEVERITY_DIR / "clustering_features"
 PLOTS_DIR = SEVERITY_DIR / "plots" / "clusters"
@@ -20,19 +26,11 @@ REPORTS_DIR = SEVERITY_DIR / "reports"
 SPLITS = ["train", "val", "test"]
 
 CLUSTER_COLORS = {0: "#4C72B0", 1: "#DD8452", 2: "#55A868"}
-SEVERITY_NAMES = {0: "Mild", 1: "Moderate", 2: "Severe"}
+SEVERITY_NAMES: dict[int, str] = {}
 
 
 def _load_severity_names() -> dict[int, str]:
-    summary_path = SEVERITY_DIR / "severity_summary.json"
-    if not summary_path.exists():
-        return dict(SEVERITY_NAMES)
-    with summary_path.open(encoding="utf-8") as handle:
-        summary = json.load(handle)
-    names = summary.get("severity_names")
-    if not isinstance(names, dict):
-        return dict(SEVERITY_NAMES)
-    return {int(label): str(name) for label, name in names.items() if int(label) >= 0}
+    return {label: name for label, name in load_severity_names(SEVERITY_DIR).items() if label >= 0}
 
 
 def _load_cluster_assignments() -> tuple[dict[str, np.ndarray], dict[str, np.ndarray], list[str], dict[int, int]]:

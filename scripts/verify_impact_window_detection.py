@@ -8,6 +8,7 @@ to model inference when those columns are unavailable.
 from __future__ import annotations
 
 import json
+import sys
 import warnings
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,11 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.keras_model_loading import load_keras_model  # noqa: E402
+
 DATA_DIR = ROOT / "data" / "processed"
 BASELINE_DIR = ROOT / "results" / "cnn_baseline"
 EVAL_DIR = BASELINE_DIR / "recording_level_eval"
@@ -79,7 +85,12 @@ def recompute_metrics(thresholds: list[float]) -> tuple[pd.DataFrame, str]:
         raise FileNotFoundError(f"Trained model not found for recomputation: {MODEL_PATH}")
     import tensorflow as tf
 
-    model = tf.keras.models.load_model(MODEL_PATH)
+    scripts_dir = ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from train_cnn_baseline import build_model
+
+    model = load_keras_model(tf, MODEL_PATH, build_model)
     probabilities = model.predict(features, batch_size=BATCH_SIZE, verbose=0).ravel()
     rows: list[dict[str, Any]] = []
     for recording_id in pd.unique(recording_ids):

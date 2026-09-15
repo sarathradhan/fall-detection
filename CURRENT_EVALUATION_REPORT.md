@@ -49,13 +49,13 @@ Conclusion: the repository test suite passes in the project virtual environment.
 | Impact-centered fall labeling | Done | label arrays, impact verification reports | Fall windows are only windows containing peak impact; model impact recall is evaluated separately. |
 | EDA and quality checks | Done | `data/processed/reports/*.csv`, plots | No NaN or Inf in processed arrays; outlier and signal-health reports generated. |
 | Class imbalance handling | Done | `X_train_balanced.npy`, `y_train_balanced.npy`, `class_imbalance_report.json` | Train fall share improved from 8.09% to 14.97% in balanced artifact. |
-| Severity clustering | Done | `data/processed/severity/runs/k3_20260913T135813Z/*` | K=3 selected for Mild/Moderate/Severe interpretation; full metrics below. |
+| Severity clustering | Done | `data/processed/severity/runs/k2_20260914T055946Z/*` | K=2 selected for Mild/Severe interpretation (K=3 evaluated first, not supported, archived under `data/processed/deprecated_severity/`); full metrics below. |
 | Anomaly refinement | Done | Isolation Forest outputs | Train 2.01%, val 1.53%, test 2.00% fall windows flagged anomalous. |
 | CNN baseline | Done | `results/cnn_baseline/*` | Test fall F1 0.9814 at threshold 0.50; 0.9802 at selected threshold 0.20. |
 | CNN-LSTM baseline | Done | `results/cnn_lstm_baseline/*` | Test fall F1 0.9847 at threshold 0.50; recording recall 1.0000. |
 | Recording-level evaluation | Done | `recording_level_eval/*` | CNN-LSTM threshold 0.50 detects 300/300 fall recordings. |
 | Impact verification | Done | `impact_verification_summary.json` | CNN-LSTM threshold 0.50 impact-verified recall 1.0000. |
-| Severity-wise model evaluation | Done | `severity_eval/k3_20260913T135813Z/*` | Mild recall 0.9865, Moderate 1.0000, Severe 0.9954 at window level. |
+| Severity-wise model evaluation | Done | `severity_eval/k2_20260914T055946Z/*` | Mild recall 0.9869, Severe 0.9972 at window level. |
 
 ## 4. Dataset Metrics
 
@@ -122,20 +122,21 @@ Interpretation: fall windows have much higher acceleration peak values than ADL 
 
 Canonical versioned run used for current severity conclusions:
 
-`data/processed/severity/runs/k3_20260913T135813Z`
+`data/processed/severity/runs/k2_20260914T055946Z`
+
+K=3 was evaluated first (run `k3_20260913T135813Z`) but is not supported: the clustering metrics and cluster profiles did not show a clearly defensible three-level low/medium/high progression, and the cluster-size distribution was too imbalanced for a stable three-class severity map. That run is archived under `data/processed/deprecated_severity/20260914T055846Z/` for historical reference only.
 
 Run provenance:
 
 | Metric | Value |
 | --- | --- |
-| Run ID | `k3_20260913T135813Z` |
-| Generated at UTC | 2026-09-13T13:58:13.566997+00:00 |
-| Completed at UTC | 2026-09-13T13:58:56.052038+00:00 |
-| Selected K | 3 |
+| Run ID | `k2_20260914T055946Z` |
+| Run ID timestamp (from directory name) | 2026-09-14T05:59:46Z |
+| Selected K | 2 |
 | Fit scope | severity scaler, KMeans, and Isolation Forest fitted on train fall windows only |
 | Uncertain policy | Isolation Forest anomalies become refined severity `-1` |
 
-K selection metrics:
+K selection metrics (from `severity_k_comparison.csv`; identical candidate-K comparison regardless of which K was ultimately selected):
 
 | K | Silhouette | Davies-Bouldin | Calinski-Harabasz | Min Cluster % | Max Cluster % |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -144,31 +145,29 @@ K selection metrics:
 | 4 | 0.1643 | 2.0347 | 715.8563 | 18.78 | 32.49 |
 | 5 | 0.1686 | 1.8707 | 657.6541 | 11.84 | 30.19 |
 
-Interpretation: K=2 has the best silhouette and Calinski-Harabasz score, while K=5 has the best Davies-Bouldin score. K=3 was selected because it supports the required three-level Mild/Moderate/Severe interpretation and keeps cluster sizes balanced enough for downstream severity analysis.
+Interpretation: K=2 has the best silhouette and Calinski-Harabasz score, while K=5 has the best Davies-Bouldin score. Per `severity_model_selection.json`, K=2 was selected as "the simplest K within a near-tie of the best silhouette, while also keeping Davies-Bouldin and Calinski-Harabasz close to their best values and requiring each cluster to remain above a minimum cluster share threshold." K=3's cluster-size distribution (28.26%/34.75%/37.00%) was judged too imbalanced for a stable three-class severity map.
 
 Train cluster sizes:
 
 | Cluster | Size | Share |
 | ---: | ---: | ---: |
-| 0 | 1,659 | 36.998% |
-| 1 | 1,558 | 34.746% |
-| 2 | 1,267 | 28.256% |
+| 0 | 1,697 | 37.85% |
+| 1 | 2,787 | 62.15% |
 
 Cluster intensity profiles:
 
 | Cluster | Severity Mapping | Size | Peak Accel Mean | Acc RMS Mean | Gyro Peak Mean | Gyro RMS Mean |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| 0 | Mild | 1,659 | 6.4274 | 2.3390 | 10.1390 | 3.0410 |
-| 2 | Moderate | 1,267 | 7.2828 | 2.5747 | 12.3142 | 3.7200 |
-| 1 | Severe | 1,558 | 7.8587 | 2.6344 | 12.9757 | 3.7968 |
+| 0 | Mild | 1,697 | 6.3967 | 2.3374 | 10.1551 | 3.0443 |
+| 1 | Severe | 2,787 | 7.6351 | 2.6123 | 12.7039 | 3.7702 |
 
 Severity split counts before anomaly refinement:
 
-| Split | Fall Windows | Mild | Moderate | Severe |
-| --- | ---: | ---: | ---: | ---: |
-| train | 4,484 | 1,659 | 1,267 | 1,558 |
-| val | 1,500 | 561 | 421 | 518 |
-| test | 1,200 | 457 | 304 | 439 |
+| Split | Fall Windows | Mild | Severe |
+| --- | ---: | ---: | ---: |
+| train | 4,484 | 1,697 | 2,787 |
+| val | 1,500 | 563 | 937 |
+| test | 1,200 | 468 | 732 |
 
 ## 8. Anomaly Refinement Metrics
 
@@ -194,17 +193,14 @@ Anomaly counts by severity:
 
 | Split | Severity | Fall Windows | Anomalous Windows | Anomaly Rate |
 | --- | --- | ---: | ---: | ---: |
-| train | Mild | 1,659 | 42 | 2.53% |
-| train | Moderate | 1,267 | 10 | 0.79% |
-| train | Severe | 1,558 | 38 | 2.44% |
-| val | Mild | 561 | 5 | 0.89% |
-| val | Moderate | 421 | 16 | 3.80% |
-| val | Severe | 518 | 2 | 0.39% |
-| test | Mild | 457 | 11 | 2.41% |
-| test | Moderate | 304 | 6 | 1.97% |
-| test | Severe | 439 | 7 | 1.59% |
+| train | Mild | 1,697 | 43 | 2.53% |
+| train | Severe | 2,787 | 47 | 1.69% |
+| val | Mild | 563 | 5 | 0.89% |
+| val | Severe | 937 | 18 | 1.92% |
+| test | Mild | 468 | 11 | 2.35% |
+| test | Severe | 732 | 13 | 1.78% |
 
-Conclusion: anomaly rates are close to the configured 2% contamination overall. Validation Moderate is the highest per-severity anomaly cell at 3.80%, which deserves review if using severity labels for training a severity head.
+Conclusion: anomaly rates are close to the configured 2% contamination overall. Train Mild is the highest per-severity anomaly cell at 2.53%, which deserves review if using severity labels for training a severity head.
 
 ## 9. CNN Baseline Metrics
 
@@ -328,7 +324,9 @@ Conclusion: CNN-LSTM at 0.50 is currently the best balanced operating point beca
 
 Evaluation source:
 
-`results/cnn_lstm_baseline/severity_eval/k3_20260913T135813Z`
+`results/cnn_lstm_baseline/severity_eval/k2_20260914T055946Z`
+
+Note: this evaluates the existing binary fall/no-fall CNN-LSTM model by bucketing its predictions using K=2 refined severity labels; it is not a severity-trained model. A severity-aware CNN-LSTM (with its own severity-prediction head) remains pending for a future pass.
 
 Overall metrics at threshold 0.50:
 
@@ -355,9 +353,8 @@ Window metrics by refined severity:
 | Severity | Windows | Detected Windows | Window Recall | Window Precision | Window F1 |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Uncertain (-1) | 24 | 23 | 0.9583 | 0.0189 | 0.0370 |
-| Mild | 446 | 440 | 0.9865 | 0.3610 | 0.5285 |
-| Moderate | 298 | 298 | 1.0000 | 0.2445 | 0.3929 |
-| Severe | 432 | 430 | 0.9954 | 0.3527 | 0.5209 |
+| Mild | 457 | 451 | 0.9869 | 0.3700 | 0.5382 |
+| Severe | 719 | 717 | 0.9972 | 0.5882 | 0.7399 |
 
 Important interpretation: severity-wise precision is low because the binary detector outputs fall/not-fall, not a severity class. The precision values are calculated against each severity subset, so positives from other severities count against a single severity's precision. Use severity-wise recall as the main question here: "are falls of this severity detected?"
 
@@ -366,18 +363,16 @@ Recording metrics by severity:
 | Severity | Recordings | Detected Recordings | Impact-Verified Recordings | Two-Consecutive-Window Recordings |
 | --- | ---: | ---: | ---: | ---: |
 | Uncertain (-1) | 13 | 12 | 12 | 4 |
-| Mild | 121 | 121 | 121 | 112 |
-| Moderate | 79 | 79 | 79 | 76 |
-| Severe | 111 | 111 | 111 | 109 |
+| Mild | 126 | 125 | 125 | 113 |
+| Severe | 186 | 186 | 186 | 184 |
 
 Subject metrics by severity:
 
 | Severity | Subjects | Mean Subject Recall | Min Subject Recall | Impact-Verified Subjects |
 | --- | ---: | ---: | ---: | ---: |
 | Uncertain (-1) | 4 | 0.9167 | 0.6667 | 4 |
-| Mild | 4 | 0.9848 | 0.9651 | 4 |
-| Moderate | 4 | 1.0000 | 1.0000 | 4 |
-| Severe | 4 | 0.9955 | 0.9818 | 4 |
+| Mild | 4 | 0.9859 | 0.9688 | 4 |
+| Severe | 4 | 0.9972 | 0.9886 | 4 |
 
 Future two-consecutive-window policy:
 
@@ -389,12 +384,12 @@ Future two-consecutive-window policy:
 | ADL false-trigger recordings | 0 |
 | ADL false-trigger rate | 0.0000 |
 
-Conclusion: severity-wise recall is strong for Mild, Moderate, and Severe. Uncertain/anomalous windows remain the weakest group, which is expected because they are explicitly flagged as unusual.
+Conclusion: severity-wise recall is strong for Mild and Severe. Uncertain/anomalous windows remain the weakest group, which is expected because they are explicitly flagged as unusual.
 
 ## 13. Known Issues and Caveats
 
 1. `PROJECT_STATUS_REPORT.md` and README snapshots do not fully agree with every current stored metric. For example, README lists older CNN-LSTM test precision/recall values than the current `run_metadata.json`.
-2. Some files directly under `data/processed/severity/` appear to contain older K=2 or mixed-run severity outputs. Prefer the versioned K=3 run `data/processed/severity/runs/k3_20260913T135813Z` for current conclusions.
+2. Some files directly under `data/processed/severity/` (not under `runs/`) predate the `runs/` versioning and should not be treated as canonical. Prefer the versioned K=2 run `data/processed/severity/runs/k2_20260914T055946Z` for current conclusions; the earlier K=3 run is archived under `data/processed/deprecated_severity/` for reference only.
 3. CNN-LSTM recording-level summary and false-positive diagnostics disagree on ADL false-trigger recording counts. Re-run `scripts/evaluate_recording_level.py` and `scripts/diagnose_cnn_lstm_false_positives.py` together before final publication.
 4. The project has a large dirty worktree. Before starting new experiments, commit or intentionally archive the current state so future metrics are traceable.
 5. The raw SisFall dataset is present locally but not tracked, which is correct. Any collaborator must download/extract it separately.
@@ -403,7 +398,7 @@ Conclusion: severity-wise recall is strong for Mild, Moderate, and Severe. Uncer
 
 ## 14. Recommended Next Tasks
 
-1. Freeze a canonical run: regenerate preprocessing, severity K=3, anomaly export, CNN-LSTM evaluation, and false-positive diagnostics in one timestamped output folder.
+1. Freeze a canonical run: regenerate preprocessing, severity K=2, anomaly export, CNN-LSTM evaluation, and false-positive diagnostics in one timestamped output folder.
 2. Update `README.md` and `PROJECT_STATUS_REPORT.md` from that same canonical run so there is only one metric story.
 3. Add a small script that validates cross-file consistency: threshold values, TP/FP/FN/TN, recording-level false triggers, severity label counts, and anomaly counts.
 4. Decide whether the final application should use threshold 0.50 alone or threshold 0.50 plus the two-consecutive-window alert rule.
@@ -421,10 +416,10 @@ Conclusion: severity-wise recall is strong for Mild, Moderate, and Severe. Uncer
 | Subject metadata | `data/processed/*_subject_ids.npy` |
 | Recording metadata | `data/processed/*_recording_ids.npy` |
 | Preprocessing scaler | `data/processed/scaler.pkl` |
-| Canonical severity run | `data/processed/severity/runs/k3_20260913T135813Z/` |
+| Canonical severity run | `data/processed/severity/runs/k2_20260914T055946Z/` |
 | CNN baseline results | `results/cnn_baseline/` |
 | CNN-LSTM baseline results | `results/cnn_lstm_baseline/` |
-| Severity-wise CNN-LSTM evaluation | `results/cnn_lstm_baseline/severity_eval/k3_20260913T135813Z/` |
+| Severity-wise CNN-LSTM evaluation | `results/cnn_lstm_baseline/severity_eval/k2_20260914T055946Z/` |
 | Tests | `tests/` |
 
 ## 16. Final Decision Support
